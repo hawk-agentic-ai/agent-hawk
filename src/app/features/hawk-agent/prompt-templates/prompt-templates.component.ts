@@ -7,6 +7,8 @@ import { AGENT_IFRAME_URL, AGENT_IFRAME_ORIGIN } from '../../../core/config/app-
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { HawkAgentSimpleService } from '../services/hawk-agent-simple.service';
 import { PromptTemplatesService, PromptTemplate } from '../../configuration/prompt-templates/prompt-templates.service';
+import { OptimizedDifyService } from '../../../services/optimized-dify.service';
+import { GitHubPagesDifyService } from '../../../services/github-pages-dify-service';
 import { DialogModule } from 'primeng/dialog';
 
 @Component({
@@ -658,6 +660,8 @@ export class PromptTemplatesComponent implements OnInit, OnDestroy {
     private currencyService: CurrencyService,
     private hawkAgentService: HawkAgentSimpleService,
     private promptTemplatesService: PromptTemplatesService,
+    private optimizedDifyService: OptimizedDifyService,
+    private githubPagesDifyService: GitHubPagesDifyService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -1181,6 +1185,69 @@ export class PromptTemplatesComponent implements OnInit, OnDestroy {
   }
 
   private sendToDifyAgent(query: string) {
+    // Use GitHub Pages compatible optimization
+    const params = {
+      query: query,
+      msgUid: this.currentMsgUid,
+      instructionId: this.currentInstructionId,
+      exposureCurrency: this.extractExposureCurrency(query) || 'USD',
+      hedgeMethod: this.extractHedgeMethod(query) || undefined,
+      navType: this.extractNavType(query) || undefined,
+      useOptimization: true // Enable client-side optimization
+    };
+
+    console.log('🚀 Using GitHub Pages optimization for query:', params);
+
+    // Reset streaming state
+    this.streamBuffer = '';
+    this.apiResponse = '';
+    this.isStreaming = true;
+    this.isLoading = false;
+
+    this.githubPagesDifyService.sendOptimizedDifyRequest(params).subscribe({
+      next: (response) => {
+        console.log('✅ GitHub Pages optimization response:', response);
+        
+        if (response.success && response.response) {
+          // Process the response
+          this.apiResponse = response.response.answer || '';
+          
+          // Log detailed performance metrics
+          console.log('📊 GitHub Pages Performance Metrics:', {
+            totalTime: `${response.metrics.total_time_ms}ms`,
+            dataFetchTime: `${response.metrics.data_fetch_time_ms}ms`,
+            contextPrepTime: `${response.metrics.context_prep_time_ms}ms`,
+            difyTime: `${response.metrics.dify_response_time_ms}ms`,
+            dataReduction: `${response.context_reduction.toFixed(1)}%`,
+            cacheUsed: response.cache_used ? '💾 Cache Hit' : '🔄 Fresh Data',
+            optimizationApplied: response.optimization_applied ? '⚡ Optimized' : '🔄 Direct Call'
+          });
+          
+          // Update database session
+          this.updateDatabaseSession(
+            'completed', 
+            response.response.conversation_id,
+            response.response.task_id,
+            response.response.usage
+          );
+        } else {
+          console.error('❌ GitHub Pages optimization failed:', response.error);
+          this.handleDifyError(response.error || 'Unknown error');
+        }
+        
+        this.isStreaming = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('❌ GitHub Pages Dify service error:', error);
+        this.handleDifyError(error.message || 'GitHub Pages optimization failed');
+      }
+    });
+  }
+
+  // Legacy methods kept for reference but now using GitHub Pages optimization
+  
+  private sendLegacyDifyRequest(query: string) {
     const headers = new HttpHeaders({
       'Authorization': 'Bearer app-KKtaMynVyn8tKbdV9VbbaeyR',
       'Content-Type': 'application/json'
@@ -1204,6 +1271,8 @@ export class PromptTemplatesComponent implements OnInit, OnDestroy {
     this.streamBuffer = '';
     this.apiResponse = '';
     this.isStreaming = true;
+    
+    console.log('🔄 Using legacy Dify integration...');
     
     // Use fetch for proper streaming support
     fetch('https://api.dify.ai/v1/chat-messages', {
@@ -2097,5 +2166,95 @@ export class PromptTemplatesComponent implements OnInit, OnDestroy {
       if (name) fieldsSet.add(name);
     }
     return Array.from(fieldsSet);
+  }
+
+  // Helper methods for optimized Dify integration
+  private extractExposureCurrency(query: string): string | null {
+    // Extract currency from query - look for common currency patterns
+    const currencyPattern = /\b(USD|EUR|GBP|JPY|SGD|AUD|CHF|CAD|HKD|CNY|INR|KRW|THB|MYR|PHP|TWD|NZD)\b/i;
+    const match = query.match(currencyPattern);
+    return match ? match[1].toUpperCase() : null;
+  }
+  
+  private extractHedgeMethod(query: string): string | null {
+    const query_lower = query.toLowerCase();
+    if (query_lower.includes('cash flow hedge') || query_lower.includes('coh')) return 'COH';
+    if (query_lower.includes('fair value hedge') || query_lower.includes('mtm')) return 'MTM';
+    if (query_lower.includes('net investment hedge') || query_lower.includes('nih')) return 'NIH';
+    return null;
+  }
+  
+  private extractNavType(query: string): string | null {
+    const query_lower = query.toLowerCase();
+    if (query_lower.includes('coi') || query_lower.includes('core operating')) return 'COI';
+    if (query_lower.includes('re') || query_lower.includes('real estate')) return 'RE';
+    return null;
+  }
+  
+  private logPerformanceMetrics(metrics: any) {
+    console.log('📊 Dify Performance Metrics:', {
+      totalTime: `${metrics.total_time_ms}ms`,
+      contextPrepTime: `${metrics.context_prep_time_ms}ms`,
+      difyResponseTime: `${metrics.dify_response_time_ms}ms`,
+      contextSource: metrics.context_source,
+      optimization: `${metrics.context_prep_time_ms < 1000 ? '🚀 Fast' : '⚡ Normal'} context preparation`,
+      cacheStatus: metrics.context_source === 'cache' ? '💾 Cache Hit' : '🔄 Fresh Data'
+    });
+    
+    // Show performance indicator in UI (optional)
+    const performanceClass = metrics.total_time_ms < 3000 ? 'performance-excellent' : 
+                           metrics.total_time_ms < 6000 ? 'performance-good' : 'performance-slow';
+    
+    // You can add visual indicators based on performance
+    console.log(`Performance class: ${performanceClass}`);
+  }
+  
+  private handleDifyError(errorMessage: string) {
+    this.apiResponse = `Error: ${errorMessage}`;
+    this.updateDatabaseSession('failed');
+    this.isStreaming = false;
+    this.isLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  // Performance testing method for GitHub Pages optimization
+  async testGitHubPagesOptimization(query: string = "Analyze USD hedging position with recent allocations") {
+    try {
+      console.log('🧪 Testing GitHub Pages optimization vs direct call...');
+      
+      const comparison = await this.githubPagesDifyService.performanceComparison({
+        query: query,
+        msgUid: `TEST_${Date.now()}`,
+        instructionId: `PERF_TEST_${Date.now()}`,
+        exposureCurrency: this.extractExposureCurrency(query) || 'USD',
+        hedgeMethod: this.extractHedgeMethod(query) || undefined,
+        navType: this.extractNavType(query) || undefined
+      });
+      
+      console.log('🎯 Performance Comparison Results:', {
+        optimizedTime: `${comparison.optimized.metrics.total_time_ms}ms`,
+        directTime: `${comparison.direct.metrics.total_time_ms}ms`,
+        timeSaved: `${comparison.improvement.time_saved_ms}ms (${comparison.improvement.time_saved_percent.toFixed(1)}% faster)`,
+        dataReduction: `${comparison.improvement.data_reduction_percent.toFixed(1)}% less data sent to Dify`,
+        cacheUsed: comparison.improvement.cache_benefit ? '💾 Cache benefit' : '🔄 No cache benefit'
+      });
+
+      return comparison;
+    } catch (error) {
+      console.error('❌ Performance test failed:', error);
+      throw error;
+    }
+  }
+
+  // Cache management methods
+  clearGitHubPagesCache() {
+    this.githubPagesDifyService.clearCache();
+    console.log('🗑️ GitHub Pages cache cleared');
+  }
+
+  getOptimizationStats() {
+    const stats = this.githubPagesDifyService.getOptimizationStats();
+    console.log('📊 GitHub Pages optimization stats:', stats);
+    return stats;
   }
 }

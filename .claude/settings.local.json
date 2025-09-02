@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm start)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git checkout:*)",
+      "Read(/Users/vikramadityavss/Pictures/**)",
+      "WebFetch(domain:ladviaautlfvpxuadqrb.supabase.co)",
+      "Read(/Users/vikramadityavss/Pictures/**)",
+      "Read(/var/folders/yj/nkb8gg314x9g3sykzn07pydw0000gn/T/TemporaryItems/NSIRD_screencaptureui_zt9lIf/**)",
+      "Bash(npm run lint:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

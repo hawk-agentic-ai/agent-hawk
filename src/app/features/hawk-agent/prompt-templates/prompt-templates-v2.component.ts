@@ -319,9 +319,8 @@ export class PromptTemplatesV2Component implements OnInit {
     this.isStreaming = true;
     this.isLoading = true;
 
-    // Pick Dify app key: use the provided Utilisation agent for Utilisation category only
-    const cat = (this.selectedCategory || '').toLowerCase();
-    const appKey = cat.includes('util') ? 'app-cxzVbRQUUDofTjx1nDfajpRX' : 'app-KKtaMynVyn8tKbdV9VbbaeyR';
+    // Use the same Dify app key for all templates
+    const appKey = 'app-KKtaMynVyn8tKbdV9VbbaeyR';
 
     // Reset retry/ended flags
     this.retryCount = 0;
