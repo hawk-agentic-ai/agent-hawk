@@ -33,19 +33,33 @@ export class PromptTemplatesService {
 
   async loadTemplates(): Promise<void> {
     try {
+      console.log(' Loading templates from Supabase...');
       const supabase = getSupabase();
       const { data, error } = await supabase
         .from('prompt_templates')
         .select('*')
+        .eq('status', 'active')
         .order('display_order', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error(' Supabase query error:', error);
+        throw error;
+      }
+
+      console.log(` Loaded ${(data || []).length} templates from database`);
+      if (data && data.length > 0) {
+        console.log(' Sample template:', data[0]);
+        console.log(' Available families:', [...new Set(data.map(t => t.family_type))]);
+      }
+      
       this.templatesSubject.next(data || []);
     } catch (error) {
-      console.error('Error loading prompt templates:', error);
-      console.warn('Loading fallback templates...');
+      console.error(' Error loading prompt templates:', error);
+      console.warn(' Loading fallback templates...');
       // Provide fallback templates when database is unavailable
-      this.templatesSubject.next(this.getFallbackTemplates());
+      const fallbacks = this.getFallbackTemplates();
+      console.log(` Using ${fallbacks.length} fallback templates`);
+      this.templatesSubject.next(fallbacks);
     }
   }
 
@@ -159,6 +173,7 @@ export class PromptTemplatesService {
 
   async getTemplatesByFamilyType(familyType: string): Promise<PromptTemplate[]> {
     try {
+      console.log(` Loading templates for family: ${familyType}`);
       const supabase = getSupabase();
       const { data, error } = await supabase
         .from('prompt_templates')
@@ -167,10 +182,15 @@ export class PromptTemplatesService {
         .eq('status', 'active')
         .order('display_order', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error(' Templates by family query error:', error);
+        throw error;
+      }
+      
+      console.log(` Found ${(data || []).length} templates for family ${familyType}`);
       return data || [];
     } catch (error) {
-      console.error('Error getting templates by family type:', error);
+      console.error(' Error getting templates by family type:', error);
       return [];
     }
   }
@@ -249,6 +269,46 @@ export class PromptTemplatesService {
     return this.extractInputFields(promptText);
   }
 
+  // Helper method to extract field names from database input_fields format
+  extractFieldNamesFromTemplate(template: PromptTemplate): string[] {
+    const fields: string[] = [];
+    
+    // First try to get from stored input_fields (database format)
+    if (template.input_fields && Array.isArray(template.input_fields)) {
+      template.input_fields.forEach((field: any) => {
+        if (typeof field === 'string') {
+          // Already a string, use as is
+          fields.push(field.trim());
+        } else if (field && typeof field === 'object' && field.name) {
+          // Object format: {name: 'field_name', type: 'string', ...}
+          fields.push(field.name.trim());
+        }
+      });
+    }
+    
+    // Also extract from prompt text to catch any missed fields
+    const extractedFields = this.extractInputFields(template.prompt_text || '');
+    
+    // Enhanced deduplication - case-insensitive and whitespace-aware
+    const seen = new Set<string>();
+    const allFields: string[] = [];
+    
+    [...fields, ...extractedFields].forEach(field => {
+      const normalized = field.toLowerCase().trim().replace(/\s+/g, ' ');
+      if (!seen.has(normalized) && field.trim()) {
+        seen.add(normalized);
+        allFields.push(field.trim());
+      }
+    });
+    
+    // Log only if there are issues or for debugging
+    if (fields.length + extractedFields.length !== allFields.length) {
+      console.log(`Field extraction for "${template.name}": Found ${allFields.length} unique fields from ${fields.length + extractedFields.length} total`);
+    }
+    
+    return allFields;
+  }
+
   // Helper method to replace placeholders with actual values
   fillTemplate(promptText: string, values: { [key: string]: string }): string {
     const escapeReg = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -275,29 +335,42 @@ export class PromptTemplatesService {
   // Get unique family types from database
   async getUniqueFamilyTypes(): Promise<{label: string, value: string}[]> {
     try {
+      console.log(' Loading family types from Supabase...');
       const supabase = getSupabase();
       const { data, error } = await supabase
         .from('prompt_templates')
         .select('family_type')
         .eq('status', 'active');
 
-      if (error) throw error;
+      if (error) {
+        console.error(' Family types query error:', error);
+        throw error;
+      }
       
       const uniqueTypes = [...new Set((data || []).map(t => t.family_type))];
+      console.log(' Found family types:', uniqueTypes);
       
-      return uniqueTypes.map(type => ({
+      const result = uniqueTypes.map(type => ({
         label: this.formatFamilyLabel(type),
         value: type
       }));
+      
+      console.log(' Formatted families:', result);
+      return result;
     } catch (error) {
-      console.error('Error getting unique family types:', error);
-      return [];
+      console.error(' Error getting unique family types:', error);
+      // Return fallback families
+      return [
+        { label: 'Hedge Accounting', value: 'hedge_accounting' },
+        { label: 'Risk Management', value: 'risk_management' }
+      ];
     }
   }
 
   // Get unique template categories for a specific family type
   async getTemplateCategoriesByFamily(familyType: string): Promise<{label: string, value: string}[]> {
     try {
+      console.log(` Loading categories for family: ${familyType}`);
       const supabase = getSupabase();
       const { data, error } = await supabase
         .from('prompt_templates')
@@ -305,28 +378,41 @@ export class PromptTemplatesService {
         .eq('family_type', familyType)
         .eq('status', 'active');
 
-      if (error) throw error;
+      if (error) {
+        console.error(' Categories query error:', error);
+        throw error;
+      }
       
       const uniqueCategories = [...new Set((data || []).map(t => t.template_category))];
+      console.log(` Found categories for ${familyType}:`, uniqueCategories);
       
-      return uniqueCategories.map(category => ({
+      const result = uniqueCategories.map(category => ({
         label: this.formatCategoryLabel(category),
         value: category
       }));
+      
+      console.log(' Formatted categories:', result);
+      return result;
     } catch (error) {
-      console.error('Error getting template categories:', error);
+      console.error(' Error getting template categories:', error);
       return [];
     }
   }
 
   private formatFamilyLabel(family: string): string {
     const map: Record<string, string> = {
-      hedge_accounting: 'Hedge Accounting',
-      risk_management: 'Risk Management',
-      compliance: 'Compliance',
-      reporting: 'Reporting',
-      analysis: 'Analysis',
-      operations: 'Operations'
+      'hedge_accounting': 'Hedge Accounting',
+      'risk_management': 'Risk Management', 
+      'compliance': 'Compliance',
+      'reporting': 'Reporting',
+      'analysis': 'Analysis',
+      'operations': 'Operations',
+      'Instructions & Processing': 'Instructions & Processing',
+      'Risk & Compliance': 'Risk & Compliance',
+      'Analysis & Reporting': 'Analysis & Reporting',
+      'Problem Resolution': 'Problem Resolution',
+      'Configuration & Setup': 'Configuration & Setup',
+      'Monitoring & Status': 'Monitoring & Status'
     };
     return map[family] || this.formatCategoryLabel(family);
   }

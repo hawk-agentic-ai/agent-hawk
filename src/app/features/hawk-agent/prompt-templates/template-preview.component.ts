@@ -143,42 +143,65 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
     ];
   }
   ngOnChanges(ch: SimpleChanges){
-    // Only reset values if template actually changed or if fields meaningfully changed
-    if (ch['template'] && ch['template'].currentValue !== ch['template'].previousValue) {
-      console.log('Template changed, resetting values');
-      this.values = {};
-      (this.fields||[]).forEach(f=> this.values[f] = '');
-      this.computeFilled();
-    } else if (ch['fields']) {
-      // Only reset if the actual field names changed (not just reference changes)
+    let needsRecompute = false;
+
+    // Handle template changes
+    if (ch['template']) {
+      const prevTemplate = ch['template'].previousValue;
+      const currTemplate = ch['template'].currentValue;
+      
+      if (prevTemplate?.id !== currTemplate?.id) {
+        console.log('Template changed from', prevTemplate?.name, 'to', currTemplate?.name);
+        this.values = {};
+        needsRecompute = true;
+      }
+    }
+
+    // Handle field changes
+    if (ch['fields']) {
       const prevFields = ch['fields'].previousValue || [];
       const currFields = ch['fields'].currentValue || [];
       const fieldsChanged = JSON.stringify(prevFields) !== JSON.stringify(currFields);
       
       if (fieldsChanged) {
-        console.log('Fields meaningfully changed, updating values');
-        // Preserve existing values, only add new fields
-        (this.fields||[]).forEach(f=> {
-          if (!(f in this.values)) {
-            this.values[f] = '';
+        console.log('Fields changed from', prevFields, 'to', currFields);
+        
+        // Initialize new fields while preserving existing values
+        const newValues = { ...this.values };
+        currFields.forEach((field: string) => {
+          if (!(field in newValues)) {
+            newValues[field] = '';
           }
         });
-        this.computeFilled();
+        
+        // Remove values for fields that no longer exist
+        Object.keys(newValues).forEach((key: string) => {
+          if (!currFields.includes(key)) {
+            delete newValues[key];
+          }
+        });
+        
+        this.values = newValues;
+        needsRecompute = true;
       }
+    }
+
+    if (needsRecompute) {
+      this.computeFilled();
     }
   }
   computeFilled(){
     const text = this.template?.prompt_text || '';
     const map = this.values || {};
     
-    // Only log if there are actual values to avoid spam
-    if (Object.values(map).some(v => v)) {
-      console.log('computeFilled with values:', { text, values: map });
+    if (!text) {
+      this.filledPrompt = '';
+      return;
     }
     
-    // Expand keys to multiple variants to maximize match success (parity with legacy UX)
+    // Expand keys to multiple variants to maximize match success
     const expanded: Record<string,string> = {};
-    Object.keys(map).forEach(k => {
+    Object.keys(map).forEach((k: string) => {
       const v = map[k] ?? '';
       const raw = String(k);
       const trim = raw.trim();
@@ -187,18 +210,52 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
       const withSpace = trim.replace(/_/g,' ');
       const lowerUnderscore = lower.replace(/\s+/g,'_');
       const lowerSpace = lower.replace(/_/g,' ');
-      [raw, trim, lower, withUnderscore, withSpace, lowerUnderscore, lowerSpace].forEach(key => { expanded[key] = v; });
+      [raw, trim, lower, withUnderscore, withSpace, lowerUnderscore, lowerSpace].forEach((key: string) => { expanded[key] = v; });
     });
     
+    // Use the service's fillTemplate method
     this.filledPrompt = this.ptSvc.fillTemplate(text, expanded);
     
-    // Only log the result if there are values
-    if (Object.values(map).some(v => v)) {
-      console.log('Final filled template:', this.filledPrompt);
+    // Also try manual template filling as fallback
+    if (!this.filledPrompt || this.filledPrompt === text) {
+      this.filledPrompt = this.manualFillTemplate(text, expanded);
     }
+    
+    // Debug logging
+    console.log('Template filling:', {
+      template: this.template?.name,
+      originalText: text.substring(0, 100) + '...',
+      values: map,
+      expanded: expanded,
+      result: this.filledPrompt.substring(0, 100) + '...'
+    });
     
     // Trigger change detection to update the UI
     this.cdr.detectChanges();
+  }
+
+  // Manual template filling as fallback
+  private manualFillTemplate(text: string, values: Record<string, string>): string {
+    let result = text;
+    
+    // Replace {{key}} patterns
+    Object.keys(values).forEach((key: string) => {
+      const value = values[key] || '';
+      const patterns = [
+        new RegExp(`\\{\\{\\s*${this.escapeRegex(key)}\\s*\\}\\}`, 'gi'),
+        new RegExp(`\\[\\s*${this.escapeRegex(key)}\\s*\\]`, 'gi')
+      ];
+      
+      patterns.forEach((pattern: RegExp) => {
+        result = result.replace(pattern, value);
+      });
+    });
+    
+    return result;
+  }
+
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
   escapeReg(s:string){ return s.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&'); }
   // quick fill removed per request
