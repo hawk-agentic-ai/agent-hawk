@@ -1,5 +1,0 @@
-Supabase Details:
-1. URL : https://ladviaautlfvpxuadqrb.supabase.co
-2. ANON Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhZHZpYWF1dGxmdnB4dWFkcXJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1OTYwOTksImV4cCI6MjA3MTE3MjA5OX0.viCgb6M8hXIwnoadCtmNc7dFbXYVNZ3mglD1Eq1tyes
-
-Dify API Details: app-juJAFQ9a8QAghx5tACyTvqqG
