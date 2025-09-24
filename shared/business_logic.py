@@ -67,7 +67,7 @@ class PromptAnalysisResult:
     required_tables: List[str]
     extracted_params: Dict[str, Any]
     instruction_type: Optional[str] = None
-    data_scope: str = "minimal"  # "minimal" | "targeted" | "comprehensive"
+    data_scope: str = "targeted"  # "targeted" | "comprehensive" | "minimal"
 
 class PromptIntelligenceEngine:
     """Analyzes prompts and determines required data extraction strategy"""

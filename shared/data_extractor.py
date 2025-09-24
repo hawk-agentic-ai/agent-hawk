@@ -312,7 +312,7 @@ class SmartDataExtractor:
             elif table == "currency_rates":
                 # Narrow to pairs involving the currency (supports both directions)
                 # If your schema uses currency_pair (e.g., 'HKDUSD'), adjust to eq on that value.
-                query = query.or_(f"from_currency.eq.{currency},to_currency.eq.{currency}")
+                query = query.or_(f"from_ccy.eq.{currency},to_ccy.eq.{currency}")
         
         # Entity-based filtering
         if entity_id and table in ["position_nav_master", "allocation_engine", "hedge_business_events"]:
@@ -339,7 +339,7 @@ class SmartDataExtractor:
             if table in ["hedge_instructions", "hedge_business_events"]:
                 query = query.order("created_date", desc=True)
             elif table in ["currency_rates"]:
-                query = query.order("effective_date", desc=True)
+                query = query.order("rate_date", desc=True)
             elif table in ["allocation_engine"]:
                 query = query.order("created_date", desc=True)
         

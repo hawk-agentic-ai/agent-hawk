@@ -88,9 +88,7 @@ class HedgeFundProcessor:
                                        execute_posting: bool = False,
                                        stage_mode: str = "auto",
                                        agent_role: str = "unified",
-                                       output_format: str = "json",
-                                       max_rows: Optional[int] = None,
-                                       max_kb: Optional[int] = None) -> Dict[str, Any]:
+                                       output_format: str = "json") -> Dict[str, Any]:
         """
         Universal prompt processor - core business logic shared between FastAPI and MCP
         Returns structured data instead of streaming responses for MCP compatibility
@@ -126,21 +124,6 @@ class HedgeFundProcessor:
 
             analysis_result = analyze_prompt(user_prompt, template_category)
 
-            # Merge explicit tool arguments into extracted params — explicit overrides inferred
-            try:
-                if isinstance(analysis_result.extracted_params, dict):
-                    if currency is not None:
-                        analysis_result.extracted_params["currency"] = currency
-                    if entity_id is not None:
-                        analysis_result.extracted_params["entity_id"] = entity_id
-                    if nav_type is not None:
-                        analysis_result.extracted_params["nav_type"] = nav_type
-                    if amount is not None:
-                        analysis_result.extracted_params["amount"] = amount
-            except Exception:
-                # Non-fatal: continue without explicit param merge if structure unexpected
-                pass
-
             # Auto-detect stage if not specified
             if stage_mode == "auto":
                 if any(word in user_prompt.lower() for word in ["utilization", "capacity", "feasibility", "allocation"]):
@@ -161,20 +144,6 @@ class HedgeFundProcessor:
             extracted_data = await self.data_extractor.extract_data_for_prompt(
                 analysis_result, use_cache=use_cache
             )
-
-            # Apply optional row cap across table lists to prevent excessive payloads
-            try:
-                if isinstance(max_rows, int) and max_rows > 0:
-                    for _table, _data in list(extracted_data.items()):
-                        if isinstance(_data, list) and len(_data) > max_rows:
-                            extracted_data[_table] = _data[:max_rows]
-                            # mark truncation in metadata for transparency
-                    meta = extracted_data.get("_extraction_metadata") or {}
-                    meta["row_cap_applied"] = max_rows
-                    extracted_data["_extraction_metadata"] = meta
-            except Exception:
-                # Non-fatal – continue even if capping fails
-                pass
 
             # Step 2.5: Do NOT auto-promote reads to writes. Only write when explicitly requested
 
@@ -267,9 +236,7 @@ class HedgeFundProcessor:
                     "stage_mode": stage_mode,
                     "detected_stage": detected_stage,
                     "agent_role": agent_role,
-                    "output_format": output_format,
-                    "row_cap_applied": max_rows if isinstance(max_rows, int) and max_rows > 0 else None,
-                    "byte_cap_kb": max_kb if isinstance(max_kb, int) and max_kb > 0 else None
+                    "output_format": output_format
                 }
             }
 
@@ -1355,156 +1322,48 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
             raise
     
     async def _execute_mx_booking(self, instruction_id: str, execute_booking: bool, user_prompt: str) -> Dict[str, Any]:
-        """Execute Murex booking operations with configuration-driven multiple deal creation"""
+        """Execute Murex booking operations"""
         try:
             if not instruction_id:
                 raise ValueError("instruction_id required for mx_booking operations")
-
-            # Step 1: Get instruction and event details to determine booking model
-            instruction_result = self.supabase_client.table("hedge_instructions")\
-                .select("entity_id, exposure_currency, nav_type, instruction_type")\
-                .eq("instruction_id", instruction_id)\
-                .execute()
-
-            if not instruction_result.data:
-                raise ValueError(f"Instruction {instruction_id} not found")
-
-            instruction = instruction_result.data[0]
-
-            # Step 2: Get expected deal count from configuration
-            expected_deals_result = self.supabase_client.table("v_event_expected_deals")\
-                .select("expected_deal_count, model_type, expected_products")\
-                .eq("instruction_id", instruction_id)\
-                .execute()
-
-            logger.info(f"v_event_expected_deals query for {instruction_id}: {expected_deals_result.data}")
-
-            # Fallback: query instruction_event_config for deal count
-            if not expected_deals_result.data:
-                logger.info(f"No data in v_event_expected_deals for {instruction_id}, checking instruction_event_config")
-                logger.info(f"Looking for instruction_type: {instruction.get('instruction_type', 'I')}, nav_type: {instruction.get('nav_type', 'COI')}")
-
-                config_result = self.supabase_client.table("instruction_event_config")\
-                    .select("model_map, deal_count")\
-                    .eq("instruction_type", instruction.get("instruction_type", "I"))\
-                    .eq("nav_type", instruction.get("nav_type", "COI"))\
-                    .execute()
-
-                logger.info(f"instruction_event_config query result: {config_result.data}")
-
-                expected_deal_count = 1  # Default fallback
-                model_type = "A-COI"     # Default model
-
-                if config_result.data:
-                    config = config_result.data[0]
-                    expected_deal_count = config.get("deal_count", 1)
-                    model_type = config.get("model_map", "A-COI")
-                    logger.info(f"Found config: deal_count={expected_deal_count}, model_type={model_type}")
-                else:
-                    logger.warning(f"No configuration found for instruction_type={instruction.get('instruction_type')}, nav_type={instruction.get('nav_type')}. Using defaults.")
-            else:
-                expected_deal_count = expected_deals_result.data[0].get("expected_deal_count", 1)
-                model_type = expected_deals_result.data[0].get("model_type", "A-COI")
-                logger.info(f"Found in v_event_expected_deals: deal_count={expected_deal_count}, model_type={model_type}")
-
-            # Additional fallback: If we still don't have C-COI with 10 deals, check for entity-specific config
-            if model_type == "A-COI" and expected_deal_count == 1 and instruction.get("nav_type") == "COI":
-                logger.info("Checking for C-COI specific configuration...")
-
-                # Try to find C-COI configuration
-                c_coi_result = self.supabase_client.table("instruction_event_config")\
-                    .select("model_map, deal_count")\
-                    .ilike("model_map", "%C-COI%")\
-                    .execute()
-
-                logger.info(f"C-COI specific query result: {c_coi_result.data}")
-
-                if c_coi_result.data:
-                    c_coi_config = c_coi_result.data[0]
-                    expected_deal_count = c_coi_config.get("deal_count", 10)
-                    model_type = c_coi_config.get("model_map", "C-COI")
-                    logger.info(f"Updated to C-COI config: deal_count={expected_deal_count}, model_type={model_type}")
-
-            logger.info(f"Creating {expected_deal_count} deals for instruction {instruction_id} using model {model_type}")
-
-            # Step 3: Update hedge_business_events with booking status
+            
+            # Update hedge_business_events with booking status
             booking_data = {
                 "stage_2_status": "In_Progress" if execute_booking else "Pending",
                 "stage_2_start_time": datetime.now().isoformat() if execute_booking else None,
-                "assigned_booking_model": model_type,
-                "expected_deal_count": expected_deal_count,
+                "assigned_booking_model": "HAWK_AUTO_BOOKING" if execute_booking else None,
                 "notes": f"Booking initiated via: {user_prompt[:100]}"
             }
-
+            
             result = self.supabase_client.table("hedge_business_events")\
                 .update(booking_data)\
                 .eq("instruction_id", instruction_id)\
                 .execute()
-
-            deals_created = []
-            total_records_affected = len(result.data) if result.data else 0
-
-            # Step 4: If execute_booking is True, create multiple deals
+            
+            # If execute_booking is True, simulate booking completion
             if execute_booking and result.data:
-                event_id = result.data[0].get("event_id") or f"EVT_{int(time.time())}"
-
-                # Create multiple deal bookings based on configuration
-                for deal_sequence in range(1, expected_deal_count + 1):
-                    deal_id = f"DEAL_{instruction_id}_{deal_sequence}_{int(time.time())}"
-                    booking_ref = f"BK_{model_type}_{deal_sequence}_{int(time.time())}"
-
-                    deal_data = {
-                        "deal_id": deal_id,
-                        "event_id": event_id,
-                        "instruction_id": instruction_id,
-                        "deal_sequence": deal_sequence,
-                        "product_code": "FX_FORWARD" if deal_sequence == 1 else "FX_SPOT",
-                        "portfolio_code": f"PORTFOLIO_{model_type}",
-                        "booking_reference": booking_ref,
-                        "external_reference": f"EXT_{booking_ref}",
-                        "deal_status": "Active",
-                        "created_by": "HAWK_AUTO_BOOKING",
-                        "created_date": datetime.now().isoformat()
-                    }
-
-                    try:
-                        deal_result = self.supabase_client.table("deal_bookings")\
-                            .insert(deal_data)\
-                            .execute()
-
-                        if deal_result.data:
-                            deals_created.append(deal_result.data[0])
-                            total_records_affected += 1
-                            logger.info(f"Created deal {deal_sequence}/{expected_deal_count}: {deal_id}")
-                    except Exception as deal_error:
-                        logger.error(f"Failed to create deal {deal_sequence}: {deal_error}")
-
-                # Update completion status with actual deal count
                 completion_data = {
                     "stage_2_status": "Completed",
                     "stage_2_completion_time": datetime.now().isoformat(),
-                    "actual_deal_count": len(deals_created),
+                    "murex_deal_id": f"MRX_AUTO_{int(time.time())}",
+                    "booking_reference": f"BK_AUTO_{int(time.time())}",
                     "event_status": "Booked"
                 }
-
+                
                 self.supabase_client.table("hedge_business_events")\
                     .update(completion_data)\
                     .eq("instruction_id", instruction_id)\
                     .execute()
-
+            
             return {
-                "records_affected": total_records_affected,
+                "records_affected": len(result.data),
                 "details": {
                     "instruction_id": instruction_id,
                     "booking_status": "Executed" if execute_booking else "Queued",
-                    "model_type": model_type,
-                    "expected_deal_count": expected_deal_count,
-                    "actual_deal_count": len(deals_created) if execute_booking else 0,
-                    "deals_created": deals_created if execute_booking else [],
-                    "deal_ids": [deal.get("deal_id") for deal in deals_created] if deals_created else []
+                    "murex_deal_id": f"MRX_AUTO_{int(time.time())}" if execute_booking else None
                 }
             }
-
+            
         except Exception as e:
             logger.error(f"MX Booking execution error: {e}")
             raise

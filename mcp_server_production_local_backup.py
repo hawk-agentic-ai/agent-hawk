@@ -18,6 +18,7 @@ from typing import Optional, Dict, Any
 
 # Shared business logic processor
 from shared.hedge_processor import hedge_processor
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,13 +31,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["POST", "OPTIONS"],
+    allow_methods=["POST", "OPTIONS", "GET", "HEAD"],
     allow_headers=["Content-Type", "Authorization"],
     expose_headers=["Content-Type"]
 )
 
-# Server state
-initialized = False
 AUTH_TOKEN = os.getenv("DIFY_TOOL_TOKEN", "").strip()
 
 @app.on_event("startup")
@@ -368,7 +367,6 @@ async def mcp_endpoint(request: Request, authorization: Optional[str] = Header(d
         params = body.get("params", {})
         
         if method == "initialize":
-            initialized = False  # Reset state
             
             # Return minimal initialization response
             response = {
@@ -390,19 +388,15 @@ async def mcp_endpoint(request: Request, authorization: Optional[str] = Header(d
         
         elif method == "initialized":
             # Notification: no id expected; do not respond content
-            initialized = True
             logger.info("Server marked as initialized (notification)")
             return Response(status_code=204)
         
         elif method == "notifications/initialized":
             # Alternative notification format
-            initialized = True
             logger.info("Server marked as initialized (notification)")
             return Response(status_code=204)
         
         elif method == "tools/list":
-            if not initialized:
-                logger.warning("Tools/list called before initialization complete")
             return _tools_list_result(req_id)
         
         elif method == "tools/call":
@@ -410,13 +404,6 @@ async def mcp_endpoint(request: Request, authorization: Optional[str] = Header(d
             arguments = params.get("arguments", {}) or {}
             if not tool_name:
                 return _jsonrpc_error(req_id, -32602, "Missing tool name")
-
-            # Ensure processor is ready (in case startup hook failed)
-            try:
-                if hedge_processor and hedge_processor.data_extractor is None:
-                    await hedge_processor.initialize()
-            except Exception as e:
-                return _jsonrpc_error(req_id, -32603, "Processor init failed", str(e))
 
             try:
                 # Validate required parameters based on tool
@@ -538,15 +525,19 @@ async def mcp_endpoint(request: Request, authorization: Optional[str] = Header(d
 
 @app.get("/")
 async def root_get():
-    """Return no content on GET to avoid JSON-RPC parsers misinterpreting health payloads."""
-    return Response(status_code=204, headers={
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
-    })
+    """Return a simple JSON health payload to satisfy external URL checks."""
+    return {
+        "status": "ok",
+        "name": "hedge-fund-mcp",
+        "protocol": "jsonrpc-2.0",
+        "version": "1.0.1",
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.head("/")
 async def root_head():
-    """Return no content on HEAD as well."""
-    return Response(status_code=204, headers={
+    """Return OK on HEAD for external validators that probe the root URL."""
+    return Response(status_code=200, headers={
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
     })
 
@@ -559,6 +550,69 @@ async def root_options():
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
     })
+
+@app.get("/health")
+async def health():
+    """Explicit health endpoint returning 200 with minimal info."""
+    supa_ok = bool(getattr(hedge_processor, "supabase_client", None))
+    url = os.getenv("SUPABASE_URL", "")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
+
+    def _mask(s: str) -> str:
+        if not s:
+            return ""
+        if len(s) <= 8:
+            return "****"
+        return f"{s[:4]}…{s[-4:]}"
+
+    return {
+        "status": "ok",
+        "service": "hedge-fund-mcp",
+        "time": datetime.now().isoformat(),
+        "supabase": {
+            "connected": supa_ok,
+            "url": url,
+            "key_present": bool(key),
+            "key_masked": _mask(key)
+        }
+    }
+
+@app.get("/health/db")
+async def health_db():
+    """Attempt a tiny DB call to validate Supabase credentials and return precise errors."""
+    try:
+        if hedge_processor is None or hedge_processor.supabase_client is None:
+            return {"status": "error", "error": "supabase_client not initialized"}
+
+        # Try a lightweight query on a commonly-present table; fallback to rpc if missing
+        try:
+            res = hedge_processor.supabase_client.table("currency_rates").select("*").limit(1).execute()
+            return {"status": "ok", "table": "currency_rates", "records": len(res.data or [])}
+        except Exception as e:
+            # Return detailed error for diagnosis
+            return {"status": "error", "error": str(e)}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+# ---------------------------------------------------------------------------
+# Compatibility aliases for reverse proxies routing under /mcp/
+# ---------------------------------------------------------------------------
+
+@app.post("/mcp/")
+async def mcp_endpoint_alias(request: Request, authorization: Optional[str] = Header(default=None)):
+    return await mcp_endpoint(request, authorization)
+
+@app.get("/mcp/")
+async def mcp_get_alias():
+    return await root_get()
+
+@app.head("/mcp/")
+async def mcp_head_alias():
+    return await root_head()
+
+@app.options("/mcp/")
+async def mcp_options_alias():
+    return await root_options()
 
 if __name__ == "__main__":
     # Run using the current module's app to avoid import name mismatches
