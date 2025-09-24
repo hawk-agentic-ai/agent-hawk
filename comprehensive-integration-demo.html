@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAWK Agent - Comprehensive Data Integration Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/primeicons/primeicons.css">
+    <style>
+        .template-card:hover { transform: translateY(-2px); }
+        .loading-spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">HAWK Agent</h1>
+                    <p class="text-sm text-gray-600">Comprehensive Data Integration Demo</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="system-status" class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                        <span class="text-sm text-gray-600">Checking system...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- System Overview -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Integration Architecture</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="pi pi-desktop text-2xl text-blue-600"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900">Sophisticated Frontend</h3>
+                    <p class="text-sm text-gray-600 mt-1">Angular 18 with multi-level navigation, dashboards, operations, and configuration modules</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="pi pi-database text-2xl text-green-600"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900">Comprehensive Backend</h3>
+                    <p class="text-sm text-gray-600 mt-1">Complete database extraction with 47-51 operations worth of context for AI processing</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="pi pi-microchip-ai text-2xl text-purple-600"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900">AI Processing</h3>
+                    <p class="text-sm text-gray-600 mt-1">Dify AI handles all business logic, validations, and waterfall decisions</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Selection -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">I-U-R-T-A-Q Hedge Instruction Templates</h2>
+            <p class="text-gray-600 mb-6">Select a hedge instruction type to test the comprehensive data extraction and AI processing:</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <!-- Utilization -->
+                <div class="template-card cursor-pointer border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200" 
+                     onclick="selectTemplate('utilization')">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-chart-line text-blue-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-900">Utilization (U)</h3>
+                            <p class="text-sm text-gray-600 mt-1">Execute FX hedge utilization with AI-driven capacity analysis</p>
+                            <div class="text-xs text-gray-500 mt-2">Stage 1A • 15 tables • 300+ records</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inception -->
+                <div class="template-card cursor-pointer border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200" 
+                     onclick="selectTemplate('inception')">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-plus-circle text-green-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-900">Inception (I)</h3>
+                            <p class="text-sm text-gray-600 mt-1">Start new hedge position with complete workflow automation</p>
+                            <div class="text-xs text-gray-500 mt-2">All Stages • 25+ tables • 500+ records</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rollover -->
+                <div class="template-card cursor-pointer border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200" 
+                     onclick="selectTemplate('rollover')">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-refresh text-orange-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-900">Rollover (R)</h3>
+                            <p class="text-sm text-gray-600 mt-1">Extend hedge maturity with AI optimization</p>
+                            <div class="text-xs text-gray-500 mt-2">All Stages • 25+ tables • 500+ records</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Termination -->
+                <div class="template-card cursor-pointer border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200" 
+                     onclick="selectTemplate('termination')">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-times-circle text-red-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-900">Termination (T)</h3>
+                            <p class="text-sm text-gray-600 mt-1">Close hedge positions with P&L calculation</p>
+                            <div class="text-xs text-gray-500 mt-2">All Stages • 25+ tables • P&L data</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Amendment -->
+                <div class="template-card cursor-pointer border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200" 
+                     onclick="selectTemplate('amendment')">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-pencil text-purple-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-900">Amendment (A)</h3>
+                            <p class="text-sm text-gray-600 mt-1">Modify existing hedge instructions with validation</p>
+                            <div class="text-xs text-gray-500 mt-2">All Stages • Order tracking • Audit trail</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inquiry -->
+                <div class="template-card cursor-pointer border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200" 
+                     onclick="selectTemplate('inquiry')">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                            <i class="pi pi-search text-teal-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-900">Inquiry (Q)</h3>
+                            <p class="text-sm text-gray-600 mt-1">Query system status and capacity information</p>
+                            <div class="text-xs text-gray-500 mt-2">System data • Status monitoring • Capacity</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Configuration -->
+        <div id="template-config" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Configure <span id="template-title"></span> Instruction</h3>
+            
+            <!-- Currency Selection -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+                    <select id="currency-select" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="CNY">CNY - Chinese Yuan</option>
+                        <option value="SGD">SGD - Singapore Dollar</option>
+                    </select>
+                </div>
+
+                <!-- NAV Type (for Inception) -->
+                <div id="nav-type-container" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">NAV Type</label>
+                    <select id="nav-type-select" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="COI">COI - Capital-Others-Investment</option>
+                        <option value="RE">RE - Revenue-Earnings</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- User Prompt -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Hedge Instruction Prompt</label>
+                <textarea id="user-prompt" 
+                         class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                         rows="3" 
+                         placeholder="Enter your hedge instruction prompt..."></textarea>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-600 mb-2">Sample prompts:</p>
+                    <div id="sample-prompts" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <!-- Execute Button -->
+            <div class="flex items-center gap-4">
+                <button onclick="executeWorkflow()" 
+                        class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="pi pi-send mr-2"></i>
+                    Execute AI Workflow
+                </button>
+                <button onclick="clearTemplate()" 
+                        class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results-container" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6" style="display: none;">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">AI Processing Results</h3>
+                <div id="processing-status" class="flex items-center gap-2">
+                    <div class="loading-spinner w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full" style="display: none;"></div>
+                    <span id="status-text" class="text-sm"></span>
+                </div>
+            </div>
+
+            <!-- Data Summary -->
+            <div id="data-summary" class="mb-6">
+                <h4 class="font-medium text-gray-900 mb-3">Database Context Extracted</h4>
+                <div id="data-tables" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+
+            <!-- AI Response -->
+            <div id="ai-response-section" class="mb-6">
+                <h4 class="font-medium text-gray-900 mb-3">AI Analysis & Recommendations</h4>
+                <div id="ai-response" class="bg-gray-50 border rounded-md p-4 text-sm"></div>
+            </div>
+
+            <!-- Processing Details -->
+            <div id="processing-details" class="border-t pt-4">
+                <h4 class="font-medium text-gray-900 mb-3">Processing Details</h4>
+                <div id="processing-info" class="text-sm text-gray-600"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTemplate = null;
+        
+        const templateConfigs = {
+            utilization: {
+                title: 'Utilization (U)',
+                requiredFields: ['currency'],
+                samplePrompts: [
+                    'Execute FX hedge utilization for EUR 10M exposure across all entities',
+                    'Process utilization instruction for JPY 500M against COI portfolio',
+                    'Hedge USD exposure of 25M for revenue protection with buffer analysis'
+                ]
+            },
+            inception: {
+                title: 'Inception (I)',
+                requiredFields: ['currency', 'nav_type'],
+                samplePrompts: [
+                    'Start hedge inception for USD 25M COI exposure',
+                    'Initialize new hedge position for GBP 8M revenue protection',
+                    'Create inception instruction for CNY 100M subsidiary hedge'
+                ]
+            },
+            rollover: {
+                title: 'Rollover (R)',
+                requiredFields: ['currency'],
+                samplePrompts: [
+                    'Process rollover for existing EUR 12M hedge position',
+                    'Extend maturity for JPY 300M hedge to next quarter',
+                    'Rollover CNY hedge with updated terms and conditions'
+                ]
+            },
+            termination: {
+                title: 'Termination (T)',
+                requiredFields: ['currency'],
+                samplePrompts: [
+                    'Process maturity settlement for USD 20M hedge expiring today',
+                    'Handle natural maturity for EUR 5M revenue hedge',
+                    'Execute termination closure for TWD 50M subsidiary hedge'
+                ]
+            },
+            amendment: {
+                title: 'Amendment (A)',
+                requiredFields: ['currency'],
+                samplePrompts: [
+                    'Amend order ORD-2025-011 previous ORD-2025-007 changing notional from 100M to 120M',
+                    'Process amendment ORD-2025-012 previous ORD-2025-008 update maturity date',
+                    'Execute amendment ORD-2025-013 previous ORD-2025-009 modify hedge method to NDF'
+                ]
+            },
+            inquiry: {
+                title: 'Inquiry (Q)',
+                requiredFields: [],
+                samplePrompts: [
+                    'Check status of hedge instruction MSG-I-2025-123456',
+                    'Query available EUR hedging capacity for entity ENT001',
+                    'Status inquiry for all pending orders for CNY currency'
+                ]
+            }
+        };
+
+        // Check system status on load
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('http://3.91.170.95:8003/hedge-ai/system-status');
+                const status = await response.json();
+                updateSystemStatus(true, status.version);
+            } catch (error) {
+                updateSystemStatus(false, 'Connection failed');
+            }
+        }
+
+        function updateSystemStatus(isOnline, message) {
+            const statusEl = document.getElementById('system-status');
+            const dot = statusEl.querySelector('.w-2');
+            const text = statusEl.querySelector('span');
+            
+            if (isOnline) {
+                dot.className = 'w-2 h-2 rounded-full bg-green-500';
+                text.textContent = `System Online (${message})`;
+                text.className = 'text-sm text-green-600';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                text.textContent = `System Offline (${message})`;
+                text.className = 'text-sm text-red-600';
+            }
+        }
+
+        function selectTemplate(templateType) {
+            currentTemplate = templateType;
+            const config = templateConfigs[templateType];
+            
+            // Show configuration panel
+            document.getElementById('template-config').style.display = 'block';
+            document.getElementById('template-title').textContent = config.title;
+            
+            // Show/hide NAV type for inception
+            const navContainer = document.getElementById('nav-type-container');
+            navContainer.style.display = templateType === 'inception' ? 'block' : 'none';
+            
+            // Populate sample prompts
+            const samplesContainer = document.getElementById('sample-prompts');
+            samplesContainer.innerHTML = config.samplePrompts.map((prompt, index) => 
+                `<button onclick="useSamplePrompt('${prompt.replace(/'/g, "\\'")}')" 
+                        class="text-xs text-blue-600 hover:text-blue-800 block">
+                    ${index + 1}. ${prompt}
+                </button>`
+            ).join('');
+            
+            // Set default prompt
+            document.getElementById('user-prompt').value = config.samplePrompts[0];
+            
+            // Scroll to configuration
+            document.getElementById('template-config').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function useSamplePrompt(prompt) {
+            document.getElementById('user-prompt').value = prompt;
+        }
+
+        function clearTemplate() {
+            document.getElementById('template-config').style.display = 'none';
+            document.getElementById('results-container').style.display = 'none';
+            currentTemplate = null;
+        }
+
+        async function executeWorkflow() {
+            if (!currentTemplate) return;
+            
+            const currency = document.getElementById('currency-select').value;
+            const userPrompt = document.getElementById('user-prompt').value;
+            const navType = document.getElementById('nav-type-select').value;
+            
+            if (!userPrompt.trim()) {
+                alert('Please enter a prompt');
+                return;
+            }
+            
+            // Show results container
+            document.getElementById('results-container').style.display = 'block';
+            document.getElementById('results-container').scrollIntoView({ behavior: 'smooth' });
+            
+            // Show loading state
+            showLoading();
+            
+            const payload = {
+                prompt_type: currentTemplate,
+                currency: currency,
+                user_prompt: userPrompt
+            };
+            
+            if (currentTemplate === 'inception') {
+                payload.nav_type = navType;
+            }
+            
+            try {
+                const response = await fetch(`http://3.91.170.95:8003/hedge-ai/${currentTemplate}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                displayResults(result);
+                
+            } catch (error) {
+                displayError(error.message);
+            }
+        }
+
+        function showLoading() {
+            document.querySelector('.loading-spinner').style.display = 'block';
+            document.getElementById('status-text').textContent = 'Processing...';
+            document.getElementById('status-text').className = 'text-sm text-blue-600';
+        }
+
+        function displayResults(result) {
+            document.querySelector('.loading-spinner').style.display = 'none';
+            
+            // Update status
+            const statusEl = document.getElementById('status-text');
+            const status = result.ai_processing.status;
+            if (status === 'success') {
+                statusEl.textContent = 'Completed Successfully';
+                statusEl.className = 'text-sm text-green-600';
+            } else {
+                statusEl.textContent = `Status: ${status}`;
+                statusEl.className = 'text-sm text-orange-600';
+            }
+            
+            // Display data summary
+            const dataSummary = result.ai_processing.data_summary;
+            const tablesContainer = document.getElementById('data-tables');
+            tablesContainer.innerHTML = Object.entries(dataSummary).map(([table, count]) => 
+                `<div class="bg-gray-50 p-3 rounded">
+                    <div class="text-sm font-medium text-gray-900">${table}</div>
+                    <div class="text-lg font-bold text-blue-600">${count}</div>
+                    <div class="text-xs text-gray-500">records</div>
+                </div>`
+            ).join('');
+            
+            // Display AI response
+            const aiResponse = result.ai_processing.ai_response || result.ai_processing.error || 'No response available';
+            document.getElementById('ai-response').textContent = aiResponse;
+            
+            // Display processing details
+            document.getElementById('processing-info').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <strong>Database Context:</strong> ${result.database_context}
+                    </div>
+                    <div>
+                        <strong>Processing Approach:</strong> ${result.processing_approach}
+                    </div>
+                    <div>
+                        <strong>Currency:</strong> ${result.currency}
+                    </div>
+                    <div>
+                        <strong>Total Records:</strong> ${Object.values(dataSummary).reduce((sum, count) => sum + count, 0)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayError(error) {
+            document.querySelector('.loading-spinner').style.display = 'none';
+            document.getElementById('status-text').textContent = 'Error';
+            document.getElementById('status-text').className = 'text-sm text-red-600';
+            document.getElementById('ai-response').textContent = `Error: ${error}`;
+        }
+
+        // Initialize
+        checkSystemStatus();
+        setInterval(checkSystemStatus, 30000); // Check every 30 seconds
+    </script>
+</body>
+</html>

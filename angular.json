@@ -81,10 +81,12 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "hedge-accounting-sfx:build:production"
+              "buildTarget": "hedge-accounting-sfx:build:production",
+              "proxyConfig": "proxy.conf.json"
             },
             "development": {
-              "buildTarget": "hedge-accounting-sfx:build:development"
+              "buildTarget": "hedge-accounting-sfx:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

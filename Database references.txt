@@ -1,0 +1,194 @@
+##  Quick Reference: Database Tables Used in Stage 1A
+
+### Core Processing Tables
+
+| Table Name | Purpose in Stage 1A | Key Fields |
+| --- | --- | --- |
+| **hedge_instructions** | Store incoming FPM instructions and results | msg_uid, instruction_type, exposure_currency, hedge_amount_order, check_status |
+| **entity_master** | Entity hierarchy and permissions | entity_id, entity_type, parent_entity_id, car_exemption_flag |
+| **position_nav_master** | Entity positions and NAV amounts | entity_id, currency_code, sfx_position, nav_amount, nav_type |
+| **allocation_engine** | Apportionment results and waterfall logic | allocation_id, entity_id, waterfall_priority, available_amount_for_hedging |
+
+### Configuration and Rules Tables
+
+| Table Name | Purpose in Stage 1A | Key Fields |
+| --- | --- | --- |
+| **threshold_configuration** | USD PB deposit limits by currency | threshold_type, currency_code, warning_level, critical_level, maximum_limit |
+| **buffer_configuration** | Buffer percentage rules by entity/framework | entity_id, currency_code, hedging_framework, car_exemption_flag, buffer_percentage |
+| **waterfall_logic_configuration** | Waterfall priority rules | waterfall_type, priority_level, entity_type, sort_criteria, car_exemption_required |
+| **currency_configuration** | Currency settings and FX rates | currency_code, usd_conversion_rate, active_flag |
+| **hedging_framework** | Entity hedging framework settings | entity_id, currency_code, framework_type, hedge_method |
+
+### Monitoring and Audit Tables
+
+| Table Name | Purpose in Stage 1A | Key Fields |
+| --- | --- | --- |
+| **audit_trail** | Complete Stage 1A process logging | trace_id, stage, action, timestamp, details, status |
+| **system_configuration** | Dynamic configuration parameters | config_key, config_value, config_type, active_flag |
+| **car_master** | Capital adequacy ratio data | entity_id, car_ratio, car_exemption_flag, effective_date |
+
+### Supporting Tables
+
+| Table Name | Purpose in Stage 1A | Key Fields |
+| --- | --- | --- |
+| **hedge_business_events** | Created events (for apportionment only) | event_id, instruction_id, business_event_type, notional_amount |
+| **hedge_effectiveness** | Hedge accounting validation | entity_id, currency_code, effectiveness_percentage, accounting_method |
+
+---
+
+## Table Legend
+
+- **INSERT**: New record creation
+- **UPDATE**: Modify existing record
+- **READ**: Query/validation operation
+
+
+
+Stage 1B
+
+## 2. Database Schema & Query Patterns
+
+### Core Processing Tables
+
+| Table Name | Purpose in Stage 1B | Key Fields |
+| --- | --- | --- |
+| **hedge_business_events** | Track existing hedge relationships and create new events | event_id, original_hedge_id, business_event_type, notional_amount, event_status |
+| **hedge_instructions** | Store incoming business event instructions and results | msg_uid, instruction_type, exposure_currency, hedge_amount_order, reference_hedge_id |
+| **entity_master** | Entity hierarchy and hedge relationship validation | entity_id, entity_type, parent_entity_id, hedge_permissions |
+| **allocation_engine** | Current hedge allocations and reallocation results | allocation_id, hedge_event_id, entity_id, allocated_amount, reallocation_required |
+
+### Business Event Configuration Tables
+
+| Table Name | Purpose in Stage 1B | Key Fields |
+| --- | --- | --- |
+| **rollover_configuration** | Rollover eligibility rules and maturity windows | currency_code, min_rollover_days, max_early_rollover_days, rollover_type_rules |
+| **termination_configuration** | Termination type rules and FX spot requirements | termination_type, fx_spot_required, accounting_treatment, hedge_instrument_override |
+| **business_event_rules** | Event processing validation rules | event_type, validation_rules, approval_required, stage2_progression |
+| **hedge_relationship_master** | Existing hedge relationship registry | relationship_id, currency_code, hedge_method, entity_scope, active_hedges |
+
+### Audit and Tracking Tables
+
+---
+
+---
+
+## Stage 1B: Business Event Processing (Rollover, Termination, etc.)
+
+| Table Name | Purpose in Stage 1B | Key Fields |
+| --- | --- | --- |
+| **audit_trail** | Complete Stage 1B business event processing logging | trace_id, stage, business_event_type, original_hedge_id, processing_outcome |
+| **hedge_event_history** | Historical business event sequence tracking | event_sequence_id, original_hedge_id, event_type, event_date, successor_event_id |
+| **reallocation_audit** | Apportionment engine reallocation tracking | reallocation_id, original_allocation, new_allocation, reallocation_reason |
+
+### Integration and Handoff Tables
+
+| Table Name | Purpose in Stage 1B | Key Fields |
+| --- | --- | --- |
+| **stage2_queue** | Stage 2 MX Booking handoff queue | queue_id, event_id, booking_model, currency_type, hedging_instrument |
+| **apportionment_requests** | Business event reallocation requests | request_id, business_event_type, reallocation_type, existing_hedge_context |
+
+## Table Legend
+
+- **INSERT**: New record creation
+- **UPDATE**: Modify existing record
+- **READ**: Query/validation operation
+
+
+
+Stage 2 
+
+# HAWK Stage 2 - Comprehensive Database Operations Table
+
+## Table Legend
+
+- **INSERT**: New record creation
+- **UPDATE**: Modify existing record
+- **READ**: Query/validation operations
+
+---
+
+## Stage 2: MX Booking Engine (Murex Deal Creation)
+
+### Model A-COI: Matched Currency (HKD, AUD, EUR) - 6 Deals
+
+| Table Name | Operation | Fields to Insert/Update | Purpose | Timing |
+| --- | --- | --- | --- | --- |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='FX_SWAP'`, `portfolio_from='EXTERNAL'`, `portfolio_to='CO_FX'`, `currency_pair`, `notional_amount`, `fx_rate`, `value_date`, `maturity_date`, `booking_status='PENDING'`, `mx_deal_id`, `trade_date` | Deal 1: External  CO FX | Deal Creation |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='FX_SWAP'`, `portfolio_from='CO_FX'`, `portfolio_to='UHDIC'`, `currency_pair`, `notional_amount`, `fx_rate`, `value_date`, `maturity_date`, `booking_status='PENDING'` | Deal 2: CO FX  UHDIC | Deal Creation |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='FX_SWAP'`, `portfolio_from='UHDIC'`, `portfolio_to='INSTC'`, `currency_pair`, `notional_amount`, `fx_rate`, `value_date`, `maturity_date`, `booking_status='PENDING'` | Deal 3: UHDIC  INSTC | Deal Creation |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='FX_SWAP'`, `portfolio_from='INSTC'`, `portfolio_to='HDGIC'`, `currency_pair`, `notional_amount`, `fx_rate`, `value_date`, `maturity_date`, `booking_status='PENDING'` | Deal 4: INSTC  HDGIC | Deal Creation |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='FX_SPOT_HEDGE'`, `portfolio_from='INSTC'`, `portfolio_to='INSTC'`, `currency_pair`, `notional_amount`, `fx_rate`, `value_date`, `booking_status='PENDING'` | Deal 5: Hedge Spot | Deal Creation |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='FX_SPOT_FUNDING'`, `portfolio_from='HDGIC'`, `portfolio_to='HDGIC'`, `currency_pair`, `notional_amount`, `fx_rate`, `value_date`, `booking_status='PENDING'` | Deal 6: Funding Spot | Deal Creation |
+
+### Model B-COI: Mismatched CNY - 10 Deals
+
+| Table Name | Operation | Fields to Insert/Update | Purpose | Timing |
+| --- | --- | --- | --- | --- |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='FX_SWAP_CNH'`, `portfolio_from='EXTERNAL'`, `portfolio_to='CO_FX'`, `currency_pair='CNH/USD'`, `proxy_currency='CNH'`, `original_currency='CNY'`, `differential_rate`, `notional_amount`, `booking_status='PENDING'` | Deal 1: External  CO FX (CNH proxy) | Deal Creation |
+| **deal_bookings** | INSERT | Multiple entries with `proxy_adjustment_factor`, `cny_cnh_differential`, `settlement_method='NDF'` | Deals 2-10: Complex CNY/CNH workflow | Deal Creation |
+
+### Model C-COI: Proxy NDF (KRW, TWD) - 10 Deals
+
+| Table Name | Operation | Fields to Insert/Update | Purpose | Timing |
+| --- | --- | --- | --- | --- |
+| **deal_bookings** | INSERT | `deal_id`, `event_id`, `deal_sequence`, `deal_type='NDF'`, `portfolio_from='EXTERNAL'`, `portfolio_to='CO_FX'`, `currency_pair='KRW/USD'`, `settlement_method='NDF'`, `embedded_spot_rate`, `funding_leg_rate`, `notional_amount`, `booking_status='PENDING'` | Deal 1: NDF External  CO FX | Deal Creation |
+| **deal_bookings** | INSERT | Multiple entries with `ndf_settlement_date`, `fixing_source`, `reference_rate_source` | Deals 2-10: NDF embedded spot/funding | Deal Creation |
+
+### Common Stage 2 Operations (All Models)
+
+| Table Name | Operation | Fields to Insert/Update | Purpose | Timing |
+| --- | --- | --- | --- | --- |
+| **hedge_business_events** | UPDATE | `stage_2_status='IN_PROGRESS'`, `mx_booking_started`, `booking_model`, `expected_deal_count`, `actual_deal_count`, `booking_progress_percentage` | Stage 2 progress tracking | Processing Start |
+| **hedge_business_events** | UPDATE | `stage_2_status='COMPLETED'`, `mx_booking_completed`, `total_deals_booked`, `booking_success_rate`, `final_notional_amount`, `hedge_effectiveness_initial` | Stage 2 completion | Processing End |
+| **deal_bookings** | UPDATE | `booking_status='BOOKED'`, `mx_deal_id`, `actual_fx_rate`, `booking_timestamp`, `confirmation_received`, `settlement_instructions` | Deal booking confirmation | MX Confirmation |
+| **deal_bookings** | UPDATE | `booking_status='FAILED'`, `failure_reason`, `retry_count`, `retry_timestamp`, `manual_intervention_required` | Deal booking failure | MX Error |
+| **gl_entries** | INSERT | `entry_id`, `deal_id`, `account_code`, `debit_amount`, `credit_amount`, `currency_code`, `entry_type='RECLASSIFICATION'`, `gl_date`, `posting_reference`, `narrative` | Daily GL reclassification (5-8 sets) | Daily Processing |
+| **gl_entries_detail** | INSERT | `detail_id`, `entry_id`, `line_item`, `amount`, `account_description`, `cost_center`, `profit_center` | GL entry line items | Daily Processing |
+| **mx_proxy_hedge_report** | INSERT | `report_id`, `event_id`, `currency_code`, `proxy_currency`, `hedge_ratio`, `effectiveness_ratio`, `differential_impact`, `settlement_pnl` | Proxy hedge reporting (CNY/KRW/TWD) | Post-Booking |
+| **mx_discounted_spot** | INSERT | `spot_id`, `deal_id`, `currency_pair`, `spot_rate`, `discount_rate`, `discounted_value`, `value_date`, `calculation_method` | Discounted spot calculations | Deal Valuation |
+| **murex_book_config** | READ | `book_code`, `portfolio_mapping`, `trade_type_mapping`, `settlement_instructions`, `counterparty_mapping` | MX booking configuration | Deal Setup |
+| **hfm_template_entries** | INSERT | `template_id`, `deal_id`, `account_mapping`, `amount`, `period`, `consolidation_entity`, `movement_type`, `elimination_flag` | HFM accounting templates | Accounting Processing |
+| **audit_trail** | INSERT | `audit_id`, `trace_id`, `stage='2'`, `action`, `timestamp`, `details`, `user_id='MX_BOOKING_ENGINE'`, `status`, `mx_deal_id`, `booking_model`, `deal_sequence` | Stage 2 audit trail | Throughout |
+| **hedge_effectiveness** | INSERT | `effectiveness_id`, `event_id`, `measurement_date`, `hedge_ratio`, `effectiveness_percentage`, `ineffectiveness_amount`, `accounting_treatment`, `test_result`, `documentation_reference` | Hedge effectiveness testing | Post-Booking |
+| **risk_monitoring** | INSERT | `monitor_id`, `event_id`, `risk_type`, `exposure_amount`, `hedge_amount`, `net_exposure`, `risk_limit`, `breach_flag`, `monitoring_timestamp` | Risk exposure monitoring | Post-Booking |
+
+---
+
+## Integration & Handoff Operations
+
+| Table Name | Operation | Fields to Insert/Update | Purpose | Timing |
+| --- | --- | --- | --- | --- |
+| **stage_bundles** | INSERT | `bundle_id`, `stage_from`, `stage_to`, `event_ids`, `bundle_status`, `handoff_timestamp`, `validation_checksum`, `processing_priority` | Stage handoff coordination | Between Stages |
+| **stage2_error_log** | INSERT | `error_id`, `event_id`, `error_type`, `error_message`, `stack_trace`, `retry_count`, `resolution_status`, `manual_intervention`, `error_timestamp` | Error tracking and resolution | Error Handling |
+| **system_configuration** | READ | `config_key`, `config_value`, `config_category='System'`, `environment`, `active_flag` | System parameters | Throughout |
+
+
+
+
+## Summary Statistics
+
+### Stage 1A Operations:
+
+- **7 INSERT operations** (hedge_instructions, allocation_engine, hedge_business_events, audit_trail)
+- **1 UPDATE operation** (hedge_instructions)
+- **6 READ operations** (position_nav_master, threshold_configuration, buffer_configuration, waterfall_logic_configuration, currency_configuration, hedging_framework, entity_master)
+
+### Stage 1B Operations:
+
+- **8 INSERT operations** (hedge_instructions, hedge_business_events, allocation_engine, audit_trail, hedge_event_history, reallocation_audit, stage2_queue)
+- **3 UPDATE operations** (hedge_instructions, hedge_business_events, allocation_engine)
+- **1 READ operation** (hedge_business_events for existing hedge discovery)
+
+### Stage 2 Operations:
+
+- **6-10 INSERT operations for deal_bookings** (depending on currency model)
+- **15+ INSERT operations** (gl_entries, gl_entries_detail, mx_proxy_hedge_report, mx_discounted_spot, hfm_template_entries, audit_trail, hedge_effectiveness, risk_monitoring)
+- **4 UPDATE operations** (hedge_business_events x2, deal_bookings x2)
+- **2 READ operations** (murex_book_config, system_configuration)
+
+### Total Operations Across All Stages:
+
+- **30-34 INSERT operations**
+- **8 UPDATE operations**
+- **9 READ operations**
+- **Total: 47-51 database operations per complete hedge instruction workflow**

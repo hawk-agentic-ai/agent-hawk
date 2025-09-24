@@ -75,7 +75,7 @@ export class OptimizedDifyService {
         }
         
         // Log performance improvement
-        console.log('🚀 Optimized Dify Response:', {
+        console.log(' Optimized Dify Response:', {
           success: response.success,
           contextSource: response.performance_metrics?.context_source,
           totalTime: response.performance_metrics?.total_time_ms,
@@ -107,7 +107,7 @@ export class OptimizedDifyService {
   }): Observable<any> {
     return this.backendApiService.streamDifyResponseOptimized(params).pipe(
       tap(response => {
-        console.log('📡 Streaming optimized Dify response:', response);
+        console.log(' Streaming optimized Dify response:', response);
       }),
       catchError(error => {
         console.error('Optimized Dify streaming failed:', error);
@@ -123,7 +123,7 @@ export class OptimizedDifyService {
     this.backendApiService.getDifyPerformanceStats().pipe(
       tap((stats: DifyPerformanceStats) => {
         this.performanceStatsSubject.next(stats);
-        console.log('📊 Dify Performance Stats:', {
+        console.log(' Dify Performance Stats:', {
           totalRequests: stats.service_performance.total_requests,
           cacheHitRate: stats.service_performance.cache_hit_rate_percent,
           avgResponseTime: stats.service_performance.avg_dify_response_time,
@@ -144,7 +144,7 @@ export class OptimizedDifyService {
   invalidateCurrencyCache(currency: string): Observable<any> {
     return this.backendApiService.invalidateCurrencyCache(currency).pipe(
       tap(response => {
-        console.log(`🗑️ Cache invalidated for ${currency}:`, response);
+        console.log(` Cache invalidated for ${currency}:`, response);
         // Reload performance stats after cache invalidation
         this.loadPerformanceStats();
       }),
@@ -271,7 +271,7 @@ export class OptimizedDifyService {
       max_context_size: complexity === 'comprehensive' ? 75000 : 
                        complexity === 'focused' ? 50000 : 25000,
       include_historical: includeHistorical,
-      use_cache: true, // Always use cache unless explicitly disabled
+      use_cache: false, // Disabled - Dify handles caching internally
       estimated_complexity: complexity
     };
   }
@@ -291,7 +291,7 @@ export class OptimizedDifyService {
     // Get optimal settings based on query
     const optimalSettings = this.getOptimalSettings(params.query);
     
-    console.log('🧠 Smart optimization settings:', optimalSettings);
+    console.log(' Smart optimization settings:', optimalSettings);
 
     // Merge with optimal settings
     const optimizedParams = {

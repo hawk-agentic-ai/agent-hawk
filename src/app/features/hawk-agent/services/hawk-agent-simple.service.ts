@@ -27,29 +27,52 @@ export class HawkAgentSimpleService {
       msg_uid: msgUid,
       instruction_id: instructionId,
       user_id: 'test-user',
-      session_type: 'template',
+      session_type: templateCategory === 'agent' ? 'agent' : 'template',
       agent_status: 'pending',
-      agent_start_time: new Date().toISOString(),
+      // Remove agent_start_time - let database default handle it
       template_category: templateCategory || 'template',
       template_index: templateIndex || 1,
       metadata: { prompt_text: promptText }
     };
+    
+    console.log('🚀 Creating session with payload:', payload);
+    
     try {
       const supabase = getSupabase();
+      console.log('📡 Supabase client initialized:', !!supabase);
+      
       // Use upsert on msg_uid to avoid 409 conflicts if a duplicate msg_uid arrives
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('hawk_agent_sessions')
-        .upsert([payload], { onConflict: 'msg_uid' });
-      if (error) throw error;
+        .upsert([payload], { onConflict: 'msg_uid' })
+        .select();
+      
+      console.log('✅ Supabase upsert result:', { data, error });
+      
+      if (error) {
+        console.error('❌ Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+      
+      console.log('✅ Session created successfully:', data);
+      
     } catch (error) {
-      console.warn('createSession: proceeding without DB insert due to error:', error);
-      // proceed without throwing to avoid blocking UI; caller logs status in Prompt History via streaming
+      console.error('❌ createSession: Failed to save to Supabase:', error);
+      console.error('🔍 Check if hawk_agent_sessions table exists and has correct permissions');
+      console.error('📊 Payload that failed:', payload);
+      console.error('🔗 Full error object:', JSON.stringify(error, null, 2));
+      // proceed without throwing to avoid blocking UI, but make error visible
     }
     return {
       msg_uid: msgUid,
       instruction_id: instructionId,
       user_id: 'test-user',
-      session_type: 'template',
+      session_type: templateCategory === 'agent' ? 'agent' : 'template',
       agent_status: 'pending',
       template_category: templateCategory || 'template',
       template_index: templateIndex || 1,
@@ -70,8 +93,10 @@ export class HawkAgentSimpleService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching sessions:', error);
-      throw error;
+      console.error('❌ getSessions: Failed to fetch from Supabase:', error);
+      console.error('🔍 Check if hawk_agent_sessions table exists and has correct permissions');
+      // Return empty array instead of throwing to avoid breaking UI
+      return [];
     }
   }
 

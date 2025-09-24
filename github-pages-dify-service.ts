@@ -19,7 +19,7 @@ export interface GitHubPagesDifyResponse {
 })
 export class GitHubPagesDifyService {
   private readonly DIFY_API_URL = 'https://api.dify.ai/v1/chat-messages';
-  private readonly DIFY_API_KEY = 'app-KKtaMynVyn8tKbdV9VbbaeyR'; // Move to environment
+  private readonly DIFY_API_KEY = 'app-sF86KavXxF9u2HwQx5JpM4TK'; // Move to environment
 
   constructor(
     private http: HttpClient,
@@ -43,7 +43,7 @@ export class GitHubPagesDifyService {
     const startTime = Date.now();
     const useOptimization = params.useOptimization !== false;
     
-    console.log('🚀 GitHub Pages optimized Dify request:', {
+    console.log(' GitHub Pages optimized Dify request:', {
       ...params,
       optimization: useOptimization ? 'enabled' : 'disabled'
     });
@@ -78,7 +78,7 @@ export class GitHubPagesDifyService {
         }
       );
 
-      console.log('📊 Context optimization metrics:', contextResult.metrics);
+      console.log(' Context optimization metrics:', contextResult.metrics);
 
       // Step 2: Prepare Dify payload with optimized context
       const difyPayload = {
@@ -114,7 +114,7 @@ export class GitHubPagesDifyService {
         dify_response_time_ms: difyTime
       };
 
-      console.log('✅ GitHub Pages optimization complete:', {
+      console.log(' GitHub Pages optimization complete:', {
         totalTime: `${totalTime}ms`,
         contextTime: `${contextResult.metrics.context_prep_time_ms}ms`,
         difyTime: `${difyTime}ms`,
@@ -132,7 +132,7 @@ export class GitHubPagesDifyService {
       };
 
     } catch (error) {
-      console.error('❌ Client optimization failed, falling back to direct call:', error);
+      console.error(' Client optimization failed, falling back to direct call:', error);
       
       // Fallback to direct Dify call
       return this.sendDirectDifyRequest(params, startTime).toPromise() as Promise<GitHubPagesDifyResponse>;
@@ -173,7 +173,7 @@ export class GitHubPagesDifyService {
         const totalTime = Date.now() - startTime;
         const difyTime = Date.now() - difyStart;
         
-        console.log('🔄 Direct Dify call completed:', {
+        console.log(' Direct Dify call completed:', {
           totalTime: `${totalTime}ms`,
           difyTime: `${difyTime}ms`,
           optimization: 'none'
@@ -196,7 +196,7 @@ export class GitHubPagesDifyService {
         };
       }),
       catchError(error => {
-        console.error('❌ Direct Dify call failed:', error);
+        console.error(' Direct Dify call failed:', error);
         throw error;
       })
     );
@@ -242,7 +242,7 @@ export class GitHubPagesDifyService {
         }
       );
 
-      console.log('📡 Streaming with optimized context:', contextResult.metrics);
+      console.log(' Streaming with optimized context:', contextResult.metrics);
 
       // Create streaming payload with optimized context
       const payload = {
@@ -261,7 +261,7 @@ export class GitHubPagesDifyService {
       return this.streamDifyAPI(payload);
 
     } catch (error) {
-      console.error('❌ Streaming optimization failed, using direct stream:', error);
+      console.error(' Streaming optimization failed, using direct stream:', error);
       return this.streamDirectDifyRequest(params);
     }
   }
@@ -373,7 +373,7 @@ export class GitHubPagesDifyService {
     };
   }> {
     
-    console.log('📊 Running performance comparison...');
+    console.log(' Running performance comparison...');
 
     // Run both in parallel for fair comparison
     const [optimizedResult, directResult] = await Promise.all([
@@ -391,7 +391,7 @@ export class GitHubPagesDifyService {
       cache_benefit: optimizedResult!.cache_used
     };
 
-    console.log('🎯 Performance comparison results:', improvement);
+    console.log(' Performance comparison results:', improvement);
 
     return {
       optimized: optimizedResult!,

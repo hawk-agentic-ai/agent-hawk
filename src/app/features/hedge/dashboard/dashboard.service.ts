@@ -59,15 +59,15 @@ export class DashboardService {
       rows = rows.filter(r => r.currency_code === currencyFilter);
     }
 
-    // KPI: total hedged — sum of current_position (fallback to 0)
+    // KPI: total hedged  sum of current_position (fallback to 0)
     const totalHedged = rows.reduce((sum, r) => sum + (Number(r.current_position) || 0), 0);
 
-    // KPI: active entities — distinct non-null entity_id
+    // KPI: active entities  distinct non-null entity_id
     const entities = new Set<string>();
     rows.forEach(r => { if (r.entity_id) entities.add(r.entity_id); });
     const activeEntities = entities.size;
 
-    // KPI: risk alerts — rows with data_quality_status not null and not in ['ok','normal']
+    // KPI: risk alerts  rows with data_quality_status not null and not in ['ok','normal']
     const riskAlerts = rows.filter(r => r.data_quality_status && !['ok', 'normal', 'good'].includes(String(r.data_quality_status).toLowerCase())).length;
 
     // Hedge effectiveness: aggregate by month ratio (sum(current_position)/sum(computed_total_nav)) and take last month as headline
@@ -117,7 +117,7 @@ export class DashboardService {
       const entity = r.entity_id || 'Unknown';
       byEntity.set(entity, (byEntity.get(entity) || 0) + Math.abs(Number(r.current_position) || 0));
     });
-    // Entity Exposure — Top N with Others bucket
+    // Entity Exposure  Top N with Others bucket
     const sortedEnt = Array.from(byEntity.entries()).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
     const TOP_ENT = 10;
     const topEnt = sortedEnt.slice(0, TOP_ENT);
@@ -162,13 +162,13 @@ export class DashboardService {
     const hedgeEffectiveness = hedgeEffSeries.slice(-1)[0]?.value || 0;
     const hedgeEffectivenessPrev = hedgeEffSeries.slice(-2, -1)[0]?.value ?? hedgeEffectiveness;
 
-    // Currency breakdown — sum current_position by currency_code (top 6)
+    // Currency breakdown  sum current_position by currency_code (top 6)
     const byCcy = new Map<string, number>();
     rows.forEach(r => {
       const c = r.currency_code || 'UNK';
       byCcy.set(c, (byCcy.get(c) || 0) + (Number(r.current_position) || 0));
     });
-    // Currency breakdown — Top N with Others bucket
+    // Currency breakdown  Top N with Others bucket
     const sortedCcy = Array.from(byCcy.entries()).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
     const TOP_CCY = 6;
     const topCcy = sortedCcy.slice(0, TOP_CCY);

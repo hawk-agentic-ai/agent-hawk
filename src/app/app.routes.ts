@@ -25,16 +25,19 @@ export const routes: Routes = [
   }
   ,
   { path: 'hawk-agent', redirectTo: 'hawk-agent/prompt-templates', pathMatch: 'full' },
-  // Use the new Template Mode UI by default
-  { path: 'hawk-agent/prompt-templates', loadComponent: () => import('./features/hawk-agent/prompt-templates/prompt-templates-v2.component').then(m => m.PromptTemplatesV2Component) },
-  // Keep legacy UI accessible for fallback/testing
-  { path: 'hawk-agent/prompt-templates-legacy', loadComponent: () => import('./features/hawk-agent/prompt-templates/prompt-templates.component').then(m => m.PromptTemplatesComponent) },
+  // Use enhanced version with unified smart backend (now working!)
+  { path: 'hawk-agent/prompt-templates', loadComponent: () => import('./features/hawk-agent/prompt-templates/enhanced-prompt-templates-v2.component').then(m => m.EnhancedPromptTemplatesV2Component) },
+  // All legacy routes redirect to the main enhanced version
+  { path: 'hawk-agent/prompt-templates-enhanced', redirectTo: 'hawk-agent/prompt-templates', pathMatch: 'full' },
+  { path: 'hawk-agent/prompt-templates-v2', redirectTo: 'hawk-agent/prompt-templates', pathMatch: 'full' },
+  { path: 'hawk-agent/prompt-templates-legacy', redirectTo: 'hawk-agent/prompt-templates', pathMatch: 'full' },
   { path: 'hawk-agent/prompt-history', loadComponent: () => import('./features/hawk-agent/prompt-history/prompt-history.component').then(m => m.PromptHistoryComponent) },
   { path: 'hawk-agent/manual-mode', loadComponent: () => import('./features/hawk-agent/manual-mode/manual-mode.component').then(m => m.ManualModeComponent) },
   { path: 'hawk-agent/agent-mode', loadComponent: () => import('./features/hawk-agent/agent-mode/agent-mode.component').then(m => m.AgentModeComponent) },
   // Operations
   { path: 'operations', redirectTo: 'operations/hedge-instructions', pathMatch: 'full' },
   { path: 'operations/hedge-instructions', loadComponent: () => import('./features/operations/hedge-instructions/hedge-instructions.component').then(m => m.HedgeInstructionsComponent) },
+  { path: 'operations/hedge-business-events', loadComponent: () => import('./features/operations/hedge-business-events/hedge-business-events.component').then(m => m.HedgeBusinessEventsComponent) },
   { path: 'operations/apportionment-table', loadComponent: () => import('./features/operations/apportionment-table/apportionment-table.component').then(m => m.ApportionmentTableComponent) },
   { path: 'operations/murex-booking', loadComponent: () => import('./features/operations/murex-booking/murex-booking.component').then(m => m.MurexBookingComponent) },
   { path: 'operations/accounting-hub', loadComponent: () => import('./features/operations/accounting-hub/accounting-hub.component').then(m => m.AccountingHubComponent) },

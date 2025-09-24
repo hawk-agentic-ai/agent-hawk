@@ -1,6 +1,6 @@
-# 🔐 Secure Backend API for Hedge Agent
+#  Secure Backend API for Hedge Agent
 
-## 🚀 Quick Deploy
+##  Quick Deploy
 
 ### Option 1: Vercel (Recommended)
 ```bash
@@ -24,24 +24,24 @@ cp .env.example .env
 npm run dev
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 backend-example/
-├── api/                 # Vercel serverless functions
-│   ├── dify/
-│   │   ├── chat.js     # Dify chat endpoint
-│   │   └── stream.js   # Dify streaming endpoint
-│   └── templates/
-│       └── index.js    # Supabase templates CRUD
-├── server.js           # Express server (Railway/Heroku)
-├── package.json        # Dependencies
-├── vercel.json         # Vercel configuration
-├── Dockerfile          # Docker configuration
-└── .env.example        # Environment template
+ api/                 # Vercel serverless functions
+    dify/
+       chat.js     # Dify chat endpoint
+       stream.js   # Dify streaming endpoint
+    templates/
+        index.js    # Supabase templates CRUD
+ server.js           # Express server (Railway/Heroku)
+ package.json        # Dependencies
+ vercel.json         # Vercel configuration
+ Dockerfile          # Docker configuration
+ .env.example        # Environment template
 ```
 
-## 🔑 Environment Variables
+##  Environment Variables
 
 ```bash
 # Required
@@ -54,16 +54,16 @@ JWT_SECRET=your-jwt-secret
 ALLOWED_ORIGINS=https://your-domain.com
 ```
 
-## 🛡️ Security Features
+##  Security Features
 
-- ✅ API keys hidden from client
-- ✅ Supabase service key (not anon key)  
-- ✅ CORS protection
-- ✅ Input validation
-- ✅ Rate limiting ready
-- ✅ Authentication middleware ready
+-  API keys hidden from client
+-  Supabase service key (not anon key)  
+-  CORS protection
+-  Input validation
+-  Rate limiting ready
+-  Authentication middleware ready
 
-## 📡 API Endpoints
+##  API Endpoints
 
 ```bash
 # Dify AI
@@ -81,7 +81,7 @@ GET  /api/currencies       # Get currencies
 GET  /api/entities         # Get entities
 ```
 
-## 🧪 Test Your Deployment
+##  Test Your Deployment
 
 ```bash
 # Test templates endpoint
@@ -93,7 +93,7 @@ curl -X POST https://your-api-url.com/api/dify/chat \
   -d '{"query":"Hello world","msgUid":"test"}'
 ```
 
-## 🔄 Migration Steps
+##  Migration Steps
 
 1. **Deploy backend** using any method above
 2. **Update frontend** environment config:
@@ -109,7 +109,7 @@ curl -X POST https://your-api-url.com/api/dify/chat \
 5. **Test everything** works
 6. **Rotate old credentials** (very important!)
 
-## 🆘 Troubleshooting
+##  Troubleshooting
 
 **CORS Issues:**
 - Add your domain to `ALLOWED_ORIGINS`

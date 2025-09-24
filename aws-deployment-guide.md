@@ -2,7 +2,7 @@
 
 This guide sets up your hedge agent on AWS with full server-side optimization for maximum performance.
 
-## 🚀 **Expected Performance on AWS**
+##  **Expected Performance on AWS**
 
 - **Response Time**: 200-500ms (vs 2-3 seconds unoptimized)
 - **Cache Hit Rate**: 80-90% after warmup
@@ -10,17 +10,17 @@ This guide sets up your hedge agent on AWS with full server-side optimization fo
 - **Concurrent Users**: Supports 100+ concurrent users
 - **Uptime**: 99.9% with AWS infrastructure
 
-## 🏗️ **AWS Architecture Overview**
+##  **AWS Architecture Overview**
 
 ```
-Internet → CloudFront CDN → Application Load Balancer
-    ↓
+Internet  CloudFront CDN  Application Load Balancer
+    
 EC2 Auto Scaling Group (Frontend) + ECS/Fargate (Backend API)
-    ↓
+    
 ElastiCache Redis + RDS/Supabase
 ```
 
-## 📋 **AWS Services Required**
+##  **AWS Services Required**
 
 ### **Compute Services**
 - **EC2 instances** (t3.medium or larger)
@@ -41,7 +41,7 @@ ElastiCache Redis + RDS/Supabase
 - **CloudWatch** (monitoring and logs)
 - **AWS X-Ray** (performance tracing)
 
-## 🛠️ **Step-by-Step AWS Deployment**
+##  **Step-by-Step AWS Deployment**
 
 ### **Phase 1: Backend API Deployment**
 
@@ -251,7 +251,7 @@ aws elbv2 create-target-group \
 }
 ```
 
-## ⚡ **Performance Optimization Configuration**
+##  **Performance Optimization Configuration**
 
 ### **1. Backend API Optimization**
 
@@ -308,7 +308,7 @@ async def create_db_pool():
     )
 ```
 
-## 📊 **Monitoring & Performance Tracking**
+##  **Monitoring & Performance Tracking**
 
 ### **1. CloudWatch Dashboards**
 
@@ -369,7 +369,7 @@ async def dify_chat_optimized(request: DifyOptimizedRequest):
     return result
 ```
 
-## 🚨 **Security Configuration**
+##  **Security Configuration**
 
 ### **1. Security Groups**
 
@@ -408,7 +408,7 @@ aws ec2 authorize-security-group-ingress \
 }
 ```
 
-## 💰 **Cost Optimization**
+##  **Cost Optimization**
 
 ### **Estimated Monthly AWS Costs**
 - **ECS Fargate** (2 tasks): ~$50/month
@@ -424,7 +424,7 @@ aws ec2 authorize-security-group-ingress \
 3. **Reserved Instances** for predictable workloads
 4. **S3 Lifecycle Policies** for logs
 
-## 🎯 **Expected Performance Results**
+##  **Expected Performance Results**
 
 After AWS deployment with full optimization:
 
@@ -436,7 +436,7 @@ After AWS deployment with full optimization:
 | **Concurrent Users** | 5-10 | 100+ | **10x more capacity** |
 | **Uptime** | Variable | 99.9% | **Enterprise reliability** |
 
-## 🚀 **Deployment Checklist**
+##  **Deployment Checklist**
 
 - [ ] **Phase 1**: Deploy FastAPI backend to ECS
 - [ ] **Phase 2**: Set up ElastiCache Redis cluster  

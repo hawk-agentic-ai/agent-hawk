@@ -5,6 +5,7 @@ import { PromptTemplate } from '../../configuration/prompt-templates/prompt-temp
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { EntityMasterService, EntityMaster } from '../../configuration/entity/entity-master.service';
 import { PromptTemplatesService } from '../../configuration/prompt-templates/prompt-templates.service';
+import { HedgeBusinessEventsService, HedgeBusinessEvent } from '../../operations/hedge-business-events/hedge-business-events.service';
 
 @Component({
   selector: 'app-pt-preview',
@@ -34,11 +35,16 @@ import { PromptTemplatesService } from '../../configuration/prompt-templates/pro
                       <option *ngFor="let c of currencyOptions" [value]="c">{{ c }}</option>
                     </ng-container>
                     <ng-template #checkEntityType>
-                      <ng-container *ngIf="isEntityTypeField(f); else entityOpts">
+                      <ng-container *ngIf="isEntityTypeField(f); else checkEventId">
                         <option *ngFor="let et of entityTypeOptions" [value]="et.value">{{ et.label }}</option>
                       </ng-container>
-                      <ng-template #entityOpts>
-                        <option *ngFor="let e of entityOptions" [value]="entityOptionValueFor(f, e)">{{ e.label }}</option>
+                      <ng-template #checkEventId>
+                        <ng-container *ngIf="isEventIdField(f); else entityOpts">
+                          <option *ngFor="let event of eventIdOptions" [value]="event.value">{{ event.label }}</option>
+                        </ng-container>
+                        <ng-template #entityOpts>
+                          <option *ngFor="let e of entityOptions" [value]="entityOptionValueFor(f, e)">{{ e.label }}</option>
+                        </ng-template>
                       </ng-template>
                     </ng-template>
                   </select>
@@ -80,6 +86,7 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
   currencyOptions: string[] = [];
   entityOptions: { label: string; value: string }[] = [];
   entityTypeOptions: { label: string; value: string }[] = [];
+  eventIdOptions: { label: string; value: string }[] = [];
   copied = false;
 
   send(){
@@ -106,13 +113,15 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
   isSelect(f: string){
     const name = (f||'').toLowerCase();
     const flat = name.replace(/\s+/g,'_');
-    return name.includes('currency') || 
-           name === 'entity' || 
-           flat.includes('entity_id') || 
-           flat.includes('entity_code') || 
+    return name.includes('currency') ||
+           name === 'entity' ||
+           flat.includes('entity_id') ||
+           flat.includes('entity_code') ||
            flat.includes('entity_name') ||
-           flat.includes('entity_type') || 
-           name.includes('entity_type');
+           flat.includes('entity_type') ||
+           name.includes('entity_type') ||
+           flat.includes('event_id') ||
+           name.includes('event_id');
   }
   getSelectOptions(f: string){
     const name = (f||'').toLowerCase();
@@ -122,7 +131,7 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
     if (name === 'entity' || flat.includes('entity_id') || flat.includes('entity_code') || flat.includes('entity_name')) return this.entityOptions;
     return [] as any;
   }
-  constructor(private currencySvc: CurrencyService, private entitySvc: EntityMasterService, private ptSvc: PromptTemplatesService, private cdr: ChangeDetectorRef) {}
+  constructor(private currencySvc: CurrencyService, private entitySvc: EntityMasterService, private ptSvc: PromptTemplatesService, private cdr: ChangeDetectorRef, private hedgeEventsSvc: HedgeBusinessEventsService) {}
 
   ngOnInit(){
     // Load currency options
@@ -141,6 +150,8 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
       { label: 'Association', value: 'Association' },
       { label: 'TMU', value: 'TMU' }
     ];
+    // Load event ID options
+    this.loadEventIds();
   }
   ngOnChanges(ch: SimpleChanges){
     let needsRecompute = false;
@@ -281,5 +292,24 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
     const name = (field||'').toLowerCase();
     const flat = name.replace(/\s+/g,'_');
     return flat.includes('entity_type') || name.includes('entity_type');
+  }
+
+  isEventIdField(field: string): boolean {
+    const name = (field||'').toLowerCase();
+    const flat = name.replace(/\s+/g,'_');
+    return flat.includes('event_id') || name.includes('event_id');
+  }
+
+  private async loadEventIds(): Promise<void> {
+    try {
+      const events = await this.hedgeEventsSvc.list({ limit: 1000 });
+      this.eventIdOptions = events.map(event => ({
+        label: `${event.event_id} (${event.event_type} - ${event.event_status})`,
+        value: event.event_id || ''
+      })).filter(option => option.value);
+    } catch (error) {
+      console.error('Error loading event IDs:', error);
+      this.eventIdOptions = [];
+    }
   }
 }

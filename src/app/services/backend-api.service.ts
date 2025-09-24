@@ -55,7 +55,7 @@ export class BackendApiService {
       hedge_method: data.hedge_method || 'COH',
       nav_type: data.nav_type,
       currency_type: data.currency_type,
-      use_cache: data.use_cache !== false, // Default to true
+      use_cache: false, // Disabled - Dify manages caching
       max_context_size: data.max_context_size || 50000,
       include_historical: data.include_historical || false
     };
@@ -82,7 +82,7 @@ export class BackendApiService {
       hedge_method: data.hedge_method || 'COH',
       nav_type: data.nav_type,
       currency_type: data.currency_type,
-      use_cache: data.use_cache !== false,
+      use_cache: false, // Disabled - Dify manages caching
       max_context_size: data.max_context_size || 50000,
       include_historical: data.include_historical || false
     };

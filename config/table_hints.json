@@ -1,0 +1,85 @@
+{
+  "hedge_instructions": {
+    "required_fields": [
+      "instruction_type",
+      "instruction_date",
+      "exposure_currency",
+      "hedge_amount_order",
+      "hedge_method"
+    ],
+    "recommended_fields": ["msg_uid", "order_id"],
+    "status_field": "instruction_status",
+    "allowed_status": ["Received", "Created", "Amended", "Completed"]
+  },
+  "allocation_engine": {
+    "required_fields": [
+      "allocation_id",
+      "request_id",
+      "entity_id",
+      "currency_code",
+      "nav_type",
+      "hedge_amount_allocation",
+      "sfx_position"
+    ],
+    "recommended_fields": [],
+    "status_field": "allocation_status",
+    "allowed_status": ["Calculated", "Approved", "Finalized", "Queued", "In_Progress", "Completed"]
+  },
+  "hedge_business_events": {
+    "required_fields": [
+      "instruction_id",
+      "business_event_type",
+      "event_status"
+    ],
+    "recommended_fields": ["notional_amount", "nav_type", "currency_type"],
+    "status_field": "event_status",
+    "allowed_status": ["Pending", "Approved", "Processing", "Completed", "Failed"]
+  },
+  "deal_bookings": {
+    "required_fields": [
+      "booking_id",
+      "instruction_id",
+      "portfolio_code",
+      "notional_amount",
+      "currency",
+      "booking_status"
+    ],
+    "status_field": "booking_status",
+    "allowed_status": ["Pending", "Queued", "Booked", "Failed"]
+  },
+  "h_stg_mrx_ext": {
+    "required_fields": [
+      "message_id",
+      "message_type",
+      "message_status",
+      "message_payload"
+    ],
+    "status_field": "message_status",
+    "allowed_status": ["QUEUED", "SENT", "ACKED", "ERROR"]
+  },
+  "hedge_gl_packages": {
+    "required_fields": [
+      "package_id",
+      "instruction_id",
+      "booking_id",
+      "package_status",
+      "gl_date",
+      "currency"
+    ],
+    "status_field": "package_status",
+    "allowed_status": ["DRAFT", "READY", "POSTED", "FAILED"]
+  },
+  "hedge_gl_entries": {
+    "required_fields": [
+      "entry_id",
+      "package_id",
+      "instruction_id",
+      "account_code",
+      "entry_type"
+    ],
+    "recommended_fields": ["debit_amount", "credit_amount", "currency"],
+    "status_field": null,
+    "allowed_status": []
+  }
+}
+

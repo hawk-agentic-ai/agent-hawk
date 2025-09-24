@@ -2,22 +2,22 @@
 
 Deploy your hedge agent with full server-side optimization using **100% FREE AWS services** and open-source tools.
 
-## 💰 **AWS Free Tier Services Used (All FREE)**
+##  **AWS Free Tier Services Used (All FREE)**
 
 | Service | Free Tier Limit | Cost |
 |---------|----------------|------|
 | **EC2 t2.micro** | 750 hours/month | **FREE** |
 | **S3** | 5GB storage + 20,000 GET requests | **FREE** |
 | **CloudFront** | 50GB data transfer out | **FREE** |
-| **Application Load Balancer** | ❌ Not free (~$25/month) | Use **NGINX** instead |
-| **ElastiCache** | ❌ Not free (~$15/month) | Use **Redis on EC2** |
+| **Application Load Balancer** |  Not free (~$25/month) | Use **NGINX** instead |
+| **ElastiCache** |  Not free (~$15/month) | Use **Redis on EC2** |
 | **RDS** | 750 hours db.t2.micro + 20GB | **FREE** (but using Supabase) |
 
-## 🎯 **Free Tier Architecture**
+##  **Free Tier Architecture**
 
 ```
-Internet → CloudFront (FREE) → EC2 t2.micro (FREE)
-    ↓
+Internet  CloudFront (FREE)  EC2 t2.micro (FREE)
+    
 EC2 Instance running:
 - NGINX (reverse proxy)
 - FastAPI Backend (optimized)
@@ -25,7 +25,7 @@ EC2 Instance running:
 - Angular Frontend (static files)
 ```
 
-## 🚀 **Expected Performance (Free Tier)**
+##  **Expected Performance (Free Tier)**
 
 - **Response Time**: 400-800ms (vs 2-3 seconds unoptimized)
 - **Cache Hit Rate**: 70-80% 
@@ -33,13 +33,13 @@ EC2 Instance running:
 - **Concurrent Users**: 20-30 users
 - **Monthly Cost**: **$0** (within free tier limits)
 
-## 📋 **Prerequisites**
+##  **Prerequisites**
 
 - AWS Account (free tier eligible)
 - Domain name (optional, can use AWS public IP)
 - Basic Linux knowledge
 
-## 🛠️ **Step-by-Step Free Tier Deployment**
+##  **Step-by-Step Free Tier Deployment**
 
 ### **Step 1: Launch Free EC2 Instance**
 
@@ -337,7 +337,7 @@ aws cloudfront create-distribution --distribution-config '{
 }'
 ```
 
-## 📊 **Free Tier Monitoring (All FREE)**
+##  **Free Tier Monitoring (All FREE)**
 
 ### **1. CloudWatch Basic Monitoring (FREE)**
 
@@ -411,7 +411,7 @@ sudo nano /etc/logrotate.d/hedge-agent
 pm2 logs hedge-agent-api --lines 100
 ```
 
-## 💡 **Free Tier Optimizations**
+##  **Free Tier Optimizations**
 
 ### **1. Memory Management**
 
@@ -458,7 +458,7 @@ class OptimizedSupabaseClient:
 supabase_client = OptimizedSupabaseClient()
 ```
 
-## 🔧 **Free Tier Limitations & Solutions**
+##  **Free Tier Limitations & Solutions**
 
 | Limitation | Solution |
 |------------|----------|
@@ -467,22 +467,22 @@ supabase_client = OptimizedSupabaseClient()
 | **30GB EBS** | Log rotation, cache size limits |
 | **No auto-scaling** | Connection limiting, graceful degradation |
 
-## 💰 **Cost Breakdown (FREE TIER)**
+##  **Cost Breakdown (FREE TIER)**
 
 ```
-✅ EC2 t2.micro:        $0/month (750 hours free)
-✅ S3:                  $0/month (5GB free)
-✅ CloudFront:          $0/month (50GB transfer free)
-✅ Redis (on EC2):      $0/month (open source)
-✅ NGINX:               $0/month (open source)
-✅ PM2:                 $0/month (open source)
-✅ Let's Encrypt SSL:   $0/month (free certificates)
-✅ Basic CloudWatch:    $0/month (included)
+ EC2 t2.micro:        $0/month (750 hours free)
+ S3:                  $0/month (5GB free)
+ CloudFront:          $0/month (50GB transfer free)
+ Redis (on EC2):      $0/month (open source)
+ NGINX:               $0/month (open source)
+ PM2:                 $0/month (open source)
+ Let's Encrypt SSL:   $0/month (free certificates)
+ Basic CloudWatch:    $0/month (included)
 
-💰 TOTAL MONTHLY COST:  $0
+ TOTAL MONTHLY COST:  $0
 ```
 
-## 🚀 **Expected Performance (Free Tier)**
+##  **Expected Performance (Free Tier)**
 
 After deployment, you should see:
 
@@ -492,7 +492,7 @@ After deployment, you should see:
 - **Concurrent Users**: 20-30 users comfortably
 - **Uptime**: 99%+ with proper monitoring
 
-## 📝 **Quick Deployment Script**
+##  **Quick Deployment Script**
 
 ```bash
 #!/bin/bash
@@ -512,19 +512,19 @@ pm2 restart hedge-agent-api || pm2 start "uvicorn optimized_dify_endpoint:app --
 sudo systemctl restart nginx
 sudo systemctl restart redis-server
 
-echo "✅ Deployment complete! Your optimized hedge agent is running on AWS Free Tier!"
+echo " Deployment complete! Your optimized hedge agent is running on AWS Free Tier!"
 EOF
 ```
 
-## 🎯 **Success Metrics**
+##  **Success Metrics**
 
 You'll know the free tier optimization is working when:
 
-- ✅ **Console shows** performance metrics
-- ✅ **Response times** under 1 second
-- ✅ **Cache hit rates** above 70%
-- ✅ **Server stays** within 1GB RAM usage
-- ✅ **SSL certificate** working (https://)
-- ✅ **CloudFront** serving static assets
+-  **Console shows** performance metrics
+-  **Response times** under 1 second
+-  **Cache hit rates** above 70%
+-  **Server stays** within 1GB RAM usage
+-  **SSL certificate** working (https://)
+-  **CloudFront** serving static assets
 
-**This gives you enterprise-grade performance optimization for $0/month on AWS Free Tier!** 🎉
+**This gives you enterprise-grade performance optimization for $0/month on AWS Free Tier!** 

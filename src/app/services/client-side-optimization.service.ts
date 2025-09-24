@@ -71,7 +71,7 @@ export class ClientSideOptimizationService {
     
     // Step 1: Analyze prompt requirements
     const promptAnalysis = this.analyzePromptRequirements(promptText);
-    console.log('🧠 Prompt Analysis:', promptAnalysis);
+    console.log(' Prompt Analysis:', promptAnalysis);
 
     // Step 2: Check cache first
     const cacheKey = this.generateCacheKey('prompt_context', {
@@ -83,7 +83,7 @@ export class ClientSideOptimizationService {
     if (useCache) {
       const cached = this.getFromCache(cacheKey);
       if (cached) {
-        console.log('💾 Cache hit for optimized data');
+        console.log(' Cache hit for optimized data');
         return {
           contextData: cached,
           metrics: {
@@ -136,7 +136,7 @@ export class ClientSideOptimizationService {
       // Step 4: Structure optimized context
       const contextPrepStart = Date.now();
       
-      const originalDataSize = this.estimateDataSize({entities, positions, detailResults});
+      const originalDataSize = this.estimateDataSize([entities, positions, detailResults]);
       const contextData = this.structureOptimizedContext({
         entities,
         positions,
@@ -148,7 +148,7 @@ export class ClientSideOptimizationService {
         currency_config: currencyConfig
       }, promptAnalysis);
       
-      const optimizedDataSize = this.estimateDataSize(contextData);
+      const optimizedDataSize = this.estimateDataSize([contextData]);
       const dataReduction = ((originalDataSize - optimizedDataSize) / originalDataSize) * 100;
       
       const contextPrepTime = Date.now() - contextPrepStart;
@@ -171,12 +171,12 @@ export class ClientSideOptimizationService {
 
       this.performanceMetricsSubject.next(metrics);
       
-      console.log('⚡ Client-side optimization metrics:', metrics);
+      console.log(' Client-side optimization metrics:', metrics);
 
       return { contextData, metrics };
 
     } catch (error) {
-      console.error('❌ Client-side optimization failed:', error);
+      console.error(' Client-side optimization failed:', error);
       throw error;
     }
   }
@@ -520,7 +520,7 @@ export class ClientSideOptimizationService {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('🗑️ Client cache cleared');
+    console.log(' Client cache cleared');
   }
 
   /**

@@ -816,7 +816,7 @@ export class PromptHistoryComponent implements OnInit, OnDestroy {
       // Convert numbered lists 1. item to proper list items
       .replace(/^(\d+)\.\s+(.+)$/gm, '<div class="ml-4">$1. $2</div>')
       // Convert bullet points - item to proper list items
-      .replace(/^[-*]\s+(.+)$/gm, '<div class="ml-4">• $1</div>')
+      .replace(/^[-*]\s+(.+)$/gm, '<div class="ml-4"> $1</div>')
       // Convert headers ## Header to styled headers
       .replace(/^##\s+(.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2 text-gray-900">$1</h3>')
       .replace(/^#\s+(.+)$/gm, '<h2 class="text-lg font-bold mt-4 mb-2 text-gray-900">$1</h2>')

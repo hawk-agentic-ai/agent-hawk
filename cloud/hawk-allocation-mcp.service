@@ -1,0 +1,23 @@
+[Unit]
+Description=HAWK Allocation MCP (Stage 1A) Server
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/hedge-agent
+EnvironmentFile=/etc/hedge/allocation-mcp.env
+ExecStart=/usr/bin/python3 /home/ubuntu/hedge-agent/mcp_allocation_server.py
+Restart=on-failure
+RestartSec=3
+TimeoutStartSec=30
+TimeoutStopSec=15
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+

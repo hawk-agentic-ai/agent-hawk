@@ -46,7 +46,9 @@ import { TemplatePreviewComponent } from './template-preview.component';
 import { TemplateResultsComponent } from './template-results.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HawkAgentSimpleService } from '../services/hawk-agent-simple.service';
+import { HawkAgentConversationsService, AgentConversation } from '../services/hawk-agent-conversations.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { HAWK_AGENTS, DEFAULT_AGENT } from '../../../core/config/app-config';
 import { AGENT_IFRAME_URL } from '../../../core/config/app-config';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -129,6 +131,7 @@ interface BackendPerformanceMetrics {
             </div>
           </label>
           <span class="text-sm" [ngClass]="isAgentMode ? 'text-blue-700 font-medium' : 'text-gray-400'">Agent Mode</span>
+
         </div>
       </div>
 
@@ -208,12 +211,36 @@ interface BackendPerformanceMetrics {
                 <p class="text-sm">No previous chats</p>
               </div>
               
-              <div *ngFor="let conversation of chatHistory; let i = index" 
-                   class="p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
-                   [class.bg-gray-100]="selectedConversationId === conversation.id"
-                   (click)="selectConversation(conversation.id)">
-                <p class="text-sm text-gray-900 truncate">{{ conversation.title }}</p>
-                <p class="text-xs text-gray-500 mt-1">{{ conversation.timestamp | date:'short' }}</p>
+              <div *ngFor="let conversation of chatHistory; let i = index"
+                   class="relative p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
+                   [class.bg-gray-100]="selectedConversationId === conversation.conversation_id">
+                <div class="flex items-center justify-between"
+                     (click)="selectConversation(conversation.conversation_id)">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm text-gray-900 truncate">{{ conversation.title }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ conversation.updated_at | date:'short' }}</p>
+                  </div>
+                  <button class="ml-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+                          (click)="toggleConversationMenu(conversation.conversation_id, $event)"
+                          [class.bg-gray-200]="activeConversationMenu === conversation.conversation_id">
+                    <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Mobile-style action overlay -->
+                <div *ngIf="activeConversationMenu === conversation.conversation_id"
+                     class="absolute top-0 right-0 w-16 h-full bg-red-500 rounded-lg flex items-center justify-center z-10 animate-slide-in-right"
+                     (click)="$event.stopPropagation()">
+                  <button class="text-white hover:text-red-100 transition-colors"
+                          (click)="confirmDeleteConversation(conversation.conversation_id, conversation.title); $event.stopPropagation()"
+                          title="Delete conversation">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -230,14 +257,37 @@ interface BackendPerformanceMetrics {
                   {{ getCurrentConversationTitle() }}
                 </h3>
                 <ng-template #hawkAgent>
-                  <h3 class="text-lg font-semibold text-gray-900">HAWK Agent</h3>
+                  <div class="relative inline-block">
+                    <h3 class="text-lg font-semibold text-gray-900 inline-flex items-center gap-1">
+                      <span *ngIf="isAgentMode">{{ getCurrentHawkAgent().name }}</span>
+                      <span *ngIf="!isAgentMode">{{ getApiKeyForTemplate(selectedFamily, selectedCategory).agentName }}</span>
+                      <!-- Chevron to open agent menu -->
+                      <button *ngIf="isAgentMode" (click)="toggleAgentMenu($event)"
+                              class="px-1 py-0.5 rounded hover:bg-gray-100 border border-transparent"
+                              title="Select Agent">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                      </button>
+                    </h3>
+                    <!-- Agent dropdown menu aligned to the title -->
+                    <div *ngIf="showAgentMenu" class="absolute z-50 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg">
+                      <div class="py-1">
+                        <button *ngFor="let agent of getHawkAgentOptions()" (click)="selectHawkAgent(agent.key)"
+                                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                                [class.font-semibold]="selectedHawkAgent===agent.key">
+                          {{ agent.name }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </ng-template>
                 <p class="text-sm text-gray-500 mt-1" *ngIf="agentMessages.length > 0">
-                  Hedge Accounting Assistant
+                  {{ getCurrentHawkAgent().description }}
                 </p>
               </div>
               <!-- Toggle at far right (like temporary chat icon position) -->
-              <div class="flex items-center gap-1">
+              <div class="flex items-center gap-2">
                 <span class="text-xs text-gray-500">Template</span>
                 <label class="inline-flex items-center cursor-pointer">
                   <input type="checkbox" class="sr-only" [ngModel]="isAgentMode" (ngModelChange)="onAgentModeToggle($event)">
@@ -259,8 +309,8 @@ interface BackendPerformanceMetrics {
                 <div class="w-16 h-16 mx-auto mb-6 bg-gray-50 rounded-full flex items-center justify-center border border-gray-200">
                   <img src="assets/Logo/DBS/Logomark.svg" alt="DBS" class="h-8 w-auto">
                 </div>
-                <h3 class="text-2xl font-semibold text-gray-900 mb-4">Welcome to HAWK Agent</h3>
-                <p class="text-gray-600 mb-8">I'm your hedge accounting assistant. Ask me anything about positions, operations, compliance, or analysis.</p>
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">Welcome to {{ getCurrentHawkAgent().name }}</h3>
+                <p class="text-gray-600 mb-8">{{ getCurrentHawkAgent().description }}. I'm here to help you with {{ getCurrentHawkAgent().scope.join(', ') }}.</p>
                 
                 <!-- Suggested Prompts -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
@@ -277,46 +327,103 @@ interface BackendPerformanceMetrics {
             <!-- Chat Messages -->
             <div *ngIf="agentMessages.length > 0" class="space-y-6 max-w-4xl mx-auto">
               <div *ngFor="let message of agentMessages; let i = index" class="space-y-4">
-                <!-- User Message -->
-                <div class="flex justify-end">
-                  <div class="max-w-2xl bg-blue-600 text-white rounded-2xl px-4 py-3">
-                    <p class="text-sm">{{ message.user }}</p>
+                <!-- User Message with Hover Actions -->
+                <div class="flex justify-end group">
+                  <div class="relative flex items-center gap-2">
+                    <!-- Hover action buttons on left -->
+                    <div class="action-buttons flex items-center gap-1 pr-2">
+                      <button class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                              (click)="copyMessage(message.user)"
+                              title="Copy message">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                      </button>
+                      <button class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                              (click)="reloadMessage(message.user)"
+                              title="Resend message">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="max-w-2xl bg-blue-600 text-white rounded-2xl px-4 py-3">
+                      <p class="text-sm">{{ message.user }}</p>
+                    </div>
                   </div>
                 </div>
-                
-                <!-- AI Response -->
+
+                <!-- AI Response with Always-Visible Actions -->
                 <div class="flex justify-start">
-                  <div class="max-w-3xl">
-                    <div class="flex items-center gap-2 mb-2">
-                      <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg class="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                        </svg>
-                      </div>
-                      <span class="text-xs font-medium text-gray-600">HAWK Agent</span>
+                  <div class="w-full max-w-4xl">
+                    <div class="flex items-center gap-2 mb-3">
+                      <img src="assets/Logo/DBS/Logomark.svg" alt="HAWK Agent" class="w-6 h-6">
+                      <span class="text-sm font-medium text-gray-900">{{ getCurrentHawkAgent().name }}</span>
                     </div>
-                    <div class="bg-gray-50 rounded-2xl px-4 py-3 overflow-x-auto">
-                      <div class="text-sm text-gray-800 prose prose-sm max-w-none" 
-                           style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;"
-                           [innerHTML]="message.response"></div>
+                    <div class="overflow-x-auto">
+                      <div class="prose prose-sm text-gray-800"
+                           style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; min-width: 800px;"
+                           [innerHTML]="formatResponse(message.response)"></div>
+                    </div>
+                    <!-- Always-visible action buttons -->
+                    <div class="flex items-center gap-2 mt-3 pt-2 border-t border-gray-100">
+                      <button class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                              (click)="copyMessage(message.response)"
+                              title="Copy response">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                      </button>
+                      <button class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                              (click)="exportToPDF(message, i)"
+                              title="Export conversation to PDF">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                      </button>
+                      <button class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                              (click)="exportToJSON(message.response)"
+                              title="Export response to JSON">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
               
+              <!-- Thinking Indicator -->
+              <div *ngIf="isThinking" class="flex justify-start">
+                <div class="w-full max-w-4xl">
+                  <div class="flex items-center gap-2 mb-3">
+                    <img src="assets/Logo/DBS/Logomark.svg" alt="HAWK Agent" class="w-6 h-6">
+                    <span class="text-sm font-medium text-gray-600">HAWK Agent</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                      <div class="animate-pulse rounded-full h-2 w-2 bg-blue-600"></div>
+                      <div class="animate-pulse rounded-full h-2 w-2 bg-blue-600" style="animation-delay: 0.2s;"></div>
+                      <div class="animate-pulse rounded-full h-2 w-2 bg-blue-600" style="animation-delay: 0.4s;"></div>
+                    </div>
+                    <span class="text-sm text-gray-600">Thinking... {{ formatThinkingTime(thinkingElapsed) }}</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- Streaming Response -->
               <div *ngIf="isStreaming && currentAgentResponse" class="flex justify-start">
-                <div class="max-w-3xl">
-                  <div class="flex items-center gap-2 mb-2">
-                    <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                      <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                <div class="w-full max-w-4xl">
+                  <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 flex items-center justify-center">
+                      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     </div>
-                    <span class="text-xs font-medium text-blue-600">HAWK Agent is typing...</span>
+                    <span class="text-sm font-medium text-blue-600">HAWK Agent is typing...</span>
                   </div>
-                  <div class="bg-gray-50 rounded-2xl px-4 py-3 overflow-x-auto">
-                    <div class="text-sm text-gray-800 prose prose-sm max-w-none" 
-                         style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;"
-                         [innerHTML]="currentAgentResponse"></div>
+                  <div class="overflow-x-auto">
+                    <div class="prose prose-sm text-gray-800" 
+                         style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; min-width: 800px;"
+                         [innerHTML]="formatResponse(currentAgentResponse)"></div>
                   </div>
                 </div>
               </div>
@@ -433,7 +540,64 @@ interface BackendPerformanceMetrics {
         </div>
       </div>
     </div>
-  `
+
+    <!-- Delete Confirmation Dialog -->
+    <div *ngIf="showDeleteConfirmation"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         (click)="cancelDeleteConversation()"
+         style="z-index: 9999 !important;">
+      <div class="bg-white rounded-lg p-6 max-w-md mx-4 shadow-lg"
+           (click)="$event.stopPropagation()">
+        <div class="flex items-center gap-3 mb-4">
+          <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <h3 class="text-lg font-semibold text-gray-900">Delete Conversation</h3>
+        </div>
+        <p class="text-gray-600 mb-6">
+          Are you sure you want to delete "<strong>{{ conversationToDelete?.title }}</strong>"?
+          This action cannot be undone.
+        </p>
+        <div class="flex gap-3 justify-end">
+          <button class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  (click)="cancelDeleteConversation()">
+            Cancel
+          </button>
+          <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  (click)="deleteConversation()">
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    @keyframes slide-in-right {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    .animate-slide-in-right {
+      animation: slide-in-right 0.2s ease-out;
+    }
+
+    .conversation-item:hover .action-buttons {
+      opacity: 1;
+    }
+
+    .group:hover .action-buttons {
+      opacity: 1;
+    }
+
+    .action-buttons {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .action-buttons:hover {
+      opacity: 1;
+    }
+  `]
 })
 export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   // Existing properties (from original v2 component)
@@ -483,40 +647,82 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   agentPrompt = '';
   agentMessages: Array<{user: string, response: string}> = [];
   currentAgentResponse = '';
+  // Agent selection for Agent Mode (definitions moved below with menu state)
+
+  // HAWK Agent Properties
+  selectedHawkAgent: keyof typeof HAWK_AGENTS = (() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem('selectedHawkAgent');
+        if (saved && (saved as keyof typeof HAWK_AGENTS) in HAWK_AGENTS) {
+          console.log('🔄 Restored HAWK Agent from localStorage:', saved);
+          return saved as keyof typeof HAWK_AGENTS;
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ localStorage access failed:', e);
+    }
+    console.log('🔄 Using default HAWK Agent:', DEFAULT_AGENT);
+    return DEFAULT_AGENT as keyof typeof HAWK_AGENTS;
+  })();
+  hawkAgents = HAWK_AGENTS;
+
+  // Thinking/Processing States
+  isThinking = false;
+  thinkingStartTime = 0;
+  thinkingElapsed = 0;
+  private thinkingTimer?: any;
+
+  // Conversation Management
+  activeConversationMenu: string | null = null;
+  showDeleteConfirmation = false;
+  conversationToDelete: { id: string, title: string } | null = null;
+  private documentClickListener?: () => void;
 
   // Chat History Management
-  chatHistory: Array<{
-    id: string;
-    title: string;
-    timestamp: Date;
-    messageCount: number;
-    messages: Array<{user: string, response: string}>;
-  }> = [];
+  chatHistory: AgentConversation[] = [];
   selectedConversationId = '';
   
   // Suggested Prompts for Welcome Screen
-  suggestedPrompts = [
-    {
-      title: "Current Hedge Positions",
-      description: "What are our current hedge positions?",
-      prompt: "What are our current hedge positions?"
-    },
-    {
-      title: "USD Exposure Analysis", 
-      description: "Show me utilization analysis for USD exposures",
-      prompt: "Show me utilization analysis for USD exposures"
-    },
-    {
-      title: "Hedge Effectiveness",
-      description: "Help me understand hedge effectiveness testing",
-      prompt: "Help me understand hedge effectiveness testing"
-    },
-    {
-      title: "Risk Assessment",
-      description: "Perform a risk assessment for our portfolio",
-      prompt: "Perform a risk assessment for our portfolio"
-    }
+  // Agent selector state
+  showAgentMenu = false;
+
+  // Default prompt sets
+  private defaultPrompts = [
+    { title: 'Current Hedge Positions', description: 'What are our current hedge positions?', prompt: 'What are our current hedge positions?' },
+    { title: 'USD Exposure Analysis', description: 'Show me utilization analysis for USD exposures', prompt: 'Show me utilization analysis for USD exposures' },
+    { title: 'Hedge Effectiveness', description: 'Help me understand hedge effectiveness testing', prompt: 'Help me understand hedge effectiveness testing' },
+    { title: 'Risk Assessment', description: 'Perform a risk assessment for our portfolio', prompt: 'Perform a risk assessment for our portfolio' }
   ];
+  private allocationPrompts = [
+    { title: 'Utilization Check', description: 'Check hedge allocation feasibility', prompt: 'Perform utilization check for new 150,000 CNY hedge under ENTITY001' },
+    { title: 'CAR Buffer Analysis', description: 'Check available hedge capacity', prompt: 'Show CAR buffer availability and remaining capacity for USD hedges' },
+    { title: 'Capacity Assessment', description: 'Multi-entity capacity analysis', prompt: 'Analyze hedge capacity across all entities for EUR exposures' },
+    { title: 'Threshold Validation', description: 'USD PB threshold compliance', prompt: 'Validate USD deposit threshold compliance for new hedge allocation' }
+  ];
+
+  private bookingPrompts = [
+    { title: 'Hedge Booking Process', description: 'Guide through hedge booking workflow', prompt: 'Guide me through the hedge booking process for approved USD exposure of $500,000' },
+    { title: 'Murex Integration', description: 'Murex booking and trade execution', prompt: 'Help with Murex booking setup and trade execution parameters' },
+    { title: 'GL Posting Process', description: 'General ledger posting workflow', prompt: 'Explain GL posting process and accounting entries for completed hedge trades' },
+    { title: 'Amendment Process', description: 'Hedge amendment and modification', prompt: 'Process hedge amendment for maturity extension on existing trade' }
+  ];
+
+  private analyticsPrompts = [
+    { title: 'Hedge Effectiveness', description: 'Test hedge effectiveness', prompt: 'Run hedge effectiveness testing for Q3 2024' },
+    { title: 'Exposure Trends', description: 'Analyze exposure trends', prompt: 'Show me FX exposure trends over last 6 months' },
+    { title: 'P&L Attribution', description: 'Break down P&L by hedge type', prompt: 'Analyze P&L attribution by hedge instrument type' },
+    { title: 'Risk Metrics', description: 'Current risk metrics dashboard', prompt: 'Generate current risk metrics dashboard' }
+  ];
+
+  private configPrompts = [
+    { title: 'Update Thresholds', description: 'Modify hedge thresholds', prompt: 'Update USD hedge threshold to $2M for Entity001' },
+    { title: 'Buffer Configuration', description: 'Configure buffer percentages', prompt: 'Set CAR buffer to 15% for all entities' },
+    { title: 'Entity Mappings', description: 'Update entity configurations', prompt: 'Show current entity mapping configuration' },
+    { title: 'System Settings', description: 'Review system parameters', prompt: 'Review and validate current system parameters' }
+  ];
+  // Active prompts rendered on the welcome screen (now using HAWK agents)
+  suggestedPrompts = this.getPromptsForAgent(this.selectedHawkAgent);
 
   // Session tracking
   currentMsgUid = '';
@@ -530,26 +736,52 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   constructor(
     private svc: PromptTemplatesService,
     private sessions: HawkAgentSimpleService,
+    private conversations: HawkAgentConversationsService,
     private route: ActivatedRoute,
     private router: Router,
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef,
     private clientOptimizer: ClientSideOptimizationService
   ) {
-    // Initialize agent URL
-    this.agentUrlSafe = this.sanitizer.bypassSecurityTrustResourceUrl(AGENT_IFRAME_URL);
-    
+    // Initialize HAWK agent URL (dynamic based on selected agent)
+    this.updateAgentUrl();
+    console.log('HAWK_AGENTS loaded:', Object.keys(this.hawkAgents).map(key => this.hawkAgents[key as keyof typeof HAWK_AGENTS].name));
+
+    // Initialize welcome content for selected agent
+    this.updateWelcomeContent();
+
     // Enable backend toggle in development
     this.showBackendToggle = !environment.production;
   }
 
+  toggleAgentMenu(evt: MouseEvent) {
+    evt.stopPropagation();
+    this.showAgentMenu = !this.showAgentMenu;
+  }
+
+
   async ngOnInit() {
     await this.loadData();
     this.loadFromUrl();
+    await this.loadChatHistory(); // Load previous conversations
+
+    // Add document click listener to close conversation menu
+    this.documentClickListener = () => {
+      if (this.activeConversationMenu && !this.showDeleteConfirmation) {
+        this.activeConversationMenu = null;
+      }
+    };
+    document.addEventListener('click', this.documentClickListener);
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.stopThinkingTimer(); // Clean up thinking timer
+
+    // Remove document click listener
+    if (this.documentClickListener) {
+      document.removeEventListener('click', this.documentClickListener);
+    }
   }
 
   get backendStatusText(): string {
@@ -616,10 +848,33 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       // DISABLED: Dify handles caching - no application-level cache needed
       force_fresh: true,  // Always fresh data, let Dify manage caching
       use_cache: false,   // Disable all application caching
-      currency: currency  // Extracted currency for analysis only
+      currency: currency,  // Extracted currency for analysis only
+      // Dynamic API routing: Agent Mode vs Template Mode
+      ...(this.isAgentMode ?
+        {
+          agent_id: this.selectedHawkAgent,  // Agent Mode: Use selected HAWK agent
+          agent_api_key: this.getCurrentHawkAgent().apiKey
+        } :
+        (() => {
+          // Template Mode: Use family/category-based routing
+          const apiInfo = this.getApiKeyForTemplate(this.selectedFamily, this.selectedCategory);
+          return {
+            agent_id: apiInfo.agentKey,
+            agent_api_key: apiInfo.apiKey
+          };
+        })()
+      )
     };
 
     console.log('Processing prompt with Unified Backend');
+
+    if (this.isAgentMode) {
+      console.log('🔑 Agent Mode - Using HAWK Agent:', this.getCurrentHawkAgent().name, 'API Key:', this.getCurrentHawkAgent().apiKey);
+    } else {
+      const apiInfo = this.getApiKeyForTemplate(this.selectedFamily, this.selectedCategory);
+      console.log('📝 Template Mode - Family:', this.selectedFamily, 'Category:', this.selectedCategory);
+      console.log('🔑 Routed to HAWK Agent:', apiInfo.agentName, 'API Key:', apiInfo.apiKey);
+    }
 
     fetch(`${environment.unifiedBackendUrl}/hawk-agent/process-prompt`, {
       method: 'POST',
@@ -647,6 +902,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       this.updateDatabaseSession('failed').catch(()=>{});
     });
   }
+
 
   private async processUnifiedStream(reader: ReadableStreamDefaultReader<Uint8Array>) {
     const decoder = new TextDecoder();
@@ -683,13 +939,13 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
             
             try {
               const json = JSON.parse(dataContent);
-              
+
               if (json.event === 'error') {
                 this.responseText = ` **Error from Dify AI:** ${json.message || json.code || 'Unknown error'}\n\n${JSON.stringify(json, null, 2)}`;
                 this.isStreaming = false;
                 return;
               }
-              
+
               // Accept both 'agent_message' and generic 'message' events
               if ((json.event === 'agent_message' || json.event === 'message') && (json.answer || json.output_text || json.data?.answer)) {
                 // Only add the clean answer content, not the raw JSON
@@ -698,7 +954,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
                 // Display streamed content directly
                 this.responseText = this.streamBuffer;
               }
-              
+
               if (json.event === 'message_end') {
                 this.endedEvent = true;
                 if (json.metadata?.usage) {
@@ -708,22 +964,34 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
                 this.finishUnifiedStream(tokenUsage);
                 return;
               }
-              
+
               // Ignore agent_thought events - they're just duplicates
               if (json.event === 'agent_thought') {
                 continue;
               }
-              
+
             } catch (parseError) {
-              // Not JSON, treat as plain text only if it looks like real content
-              if (dataContent.trim() && !dataContent.includes('{') && !dataContent.includes('event:')) {
+              // Silently skip incomplete JSON chunks to prevent console spam
+              // Only treat as plain text if it's definitely not JSON fragments
+              if (dataContent.trim() &&
+                  !dataContent.includes('{') &&
+                  !dataContent.includes('}') &&
+                  !dataContent.includes('"event"') &&
+                  !dataContent.includes('"answer"') &&
+                  !dataContent.includes('data:') &&
+                  dataContent.length > 10) {
                 this.streamBuffer += dataContent;
                 this.responseText = this.streamBuffer;
               }
+              // Skip all JSON parse errors completely to eliminate console warnings
             }
           } else {
-            // Non-data line, treat as plain text if substantial
-            if (line.trim() && line.length > 5) {
+            // Non-data line, treat as plain text if substantial and not SSE metadata
+            if (line.trim() &&
+                line.length > 5 &&
+                !line.includes('event:') &&
+                !line.includes('id:') &&
+                !line.includes('retry:')) {
               this.streamBuffer += line + '\n';
               this.responseText = this.streamBuffer;
             }
@@ -756,8 +1024,8 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     this.responseText += metadata;
     this.updateDatabaseSession('completed', tokenUsage).catch(()=>{});
     
-    // 3. END REQUEST SESSION - Clean up processed context but keep raw Supabase data
-    this.clientOptimizer.endRequestSession();
+    // 3. CLEAR CACHE - Clean up processed context but keep raw Supabase data
+    this.clientOptimizer.clearCache();
     // Request session completed
   }
 
@@ -805,8 +1073,8 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
    * Reset results page between different prompts
    */
   private resetResultsPage(): void {
-    // End previous request session and clear processed context cache
-    this.clientOptimizer.endRequestSession();
+    // Clear processed context cache
+    this.clientOptimizer.clearCache();
     
     // Clear response display
     this.responseText = '';
@@ -937,11 +1205,13 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     // Remove "All Templates" - directly show family types
     this.families = Array.from(familySet).map(f => ({ label: f, value: f }));
 
-    // Set default family to "Instruction & Processing" if available
-    if (!this.selectedFamily && this.families.some(f => f.value === 'Instruction & Processing')) {
-      this.selectedFamily = 'Instruction & Processing';
-    } else if (!this.selectedFamily && this.families.length > 0) {
-      this.selectedFamily = this.families[0].value;
+    // Set default family to Instructions & Processing (robust match)
+    if (!this.selectedFamily) {
+      const preferred = this.families.find(f => {
+        const v = (f.value || '').toLowerCase();
+        return v.includes('instruction') && v.includes('processing');
+      });
+      this.selectedFamily = preferred ? preferred.value : (this.families[0]?.value || '');
     }
 
     // Build categories based on selected family
@@ -1056,11 +1326,35 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     const messageIndex = this.agentMessages.length;
     this.agentMessages.push({ user: userPrompt, response: '' });
     
-    this.isStreaming = true;
+    // Create new conversation if this is the first message (gracefully handle missing table)
+    if (this.agentMessages.length === 1 && !this.selectedConversationId) {
+      try {
+        this.selectedConversationId = this.conversations.generateConversationId();
+        const title = this.conversations.generateConversationTitle(userPrompt);
+        await this.conversations.createConversation(this.selectedConversationId, userPrompt, title);
+        console.log('✅ Conversation created successfully');
+      } catch (error) {
+        console.warn('⚠️ Failed to create conversation (table may not exist), continuing with in-memory chat:', error);
+        // Generate ID for in-memory tracking even if DB fails
+        this.selectedConversationId = this.conversations.generateConversationId();
+      }
+    }
+
+    
+    // Start thinking timer
+    this.startThinkingTimer();
     this.currentAgentResponse = '';
     
     try {
-      console.log('Sending agent message:', userPrompt.substring(0, 50) + '...');
+      console.log('🚀 Sending agent message:', userPrompt.substring(0, 50) + '...');
+      console.log('🌐 Backend URL:', `${environment.unifiedBackendUrl}/hawk-agent/process-prompt`);
+      console.log('🔑 DEBUGGING - selectedHawkAgent variable:', this.selectedHawkAgent);
+      console.log('🔑 DEBUGGING - getCurrentHawkAgent() result:', this.getCurrentHawkAgent());
+      console.log('🔑 Using HAWK Agent:', this.getCurrentHawkAgent().name, 'API Key:', this.getCurrentHawkAgent().apiKey);
+      console.log('🔑 DEBUGGING - Agent payload will use:', {
+        agent_id: this.selectedHawkAgent,
+        agent_api_key: this.getCurrentHawkAgent().apiKey
+      });
       
       // Use the same backend call as template mode but with conversational prompt
       const response = await fetch(`${environment.unifiedBackendUrl}/hawk-agent/process-prompt`, {
@@ -1072,58 +1366,62 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
           user_prompt: userPrompt,
           instruction_id: 'agent-conversation',
           use_cache: false,
-          force_fresh: true
+          force_fresh: true,
+          // Ensure proper backend routing to selected HAWK agent
+          agent_id: this.selectedHawkAgent,
+          agent_api_key: this.getCurrentHawkAgent().apiKey,
+          // Provide a generic category for backend analysis when in chat mode
+          template_category: this.selectedCategory || 'general'
         })
       });
 
+      console.log('📡 Response status:', response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
+        const errorText = await response.text().catch(() => 'No error details');
+        console.error('❌ Backend error response:', errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullResponse = '';
+      let buffer = ''; // Buffer for incomplete lines
+
+      console.log('📖 Starting to read response stream...');
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            console.log('✅ Stream reading completed');
+            // Process any remaining buffer content
+            if (buffer.trim()) {
+              console.log('📝 Processing final buffer:', buffer.substring(0, 100));
+              this.processStreamLine(buffer.trim(), fullResponse);
+            }
+            break;
+          }
 
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+          console.log('📥 Received chunk:', chunk.substring(0, 100) + (chunk.length > 100 ? '...' : ''));
+          
+          // Add chunk to buffer
+          buffer += chunk;
+          
+          // Process complete lines
+          const lines = buffer.split('\n');
+          // Keep the last incomplete line in buffer
+          buffer = lines.pop() || '';
 
           for (const line of lines) {
             if (line.trim() === '') continue;
             
-            try {
-              // Handle different data formats from backend
-              let jsonStr = '';
-              
-              if (line.startsWith('data: data: ')) {
-                // Backend sends: "data: data: {json}"
-                jsonStr = line.substring(12); // Remove "data: data: "
-              } else if (line.startsWith('data: ')) {
-                // Standard format: "data: {json}"
-                jsonStr = line.substring(6); // Remove "data: "
-              } else {
-                continue; // Skip non-data lines
-              }
-              
-              if (jsonStr.trim() === '[DONE]') {
-                continue;
-              }
-              
-              const data = JSON.parse(jsonStr);
-              
-              // Extract answer from response
-              if (data.answer) {
-                fullResponse += data.answer;
-                this.currentAgentResponse = fullResponse;
-                this.cdr.detectChanges();
-                // Agent chunk received
-              }
-            } catch (e) {
-              console.warn('⚠️ Failed to parse agent stream line:', line, e);
+            const answerChunk = this.processStreamLine(line, fullResponse);
+            if (answerChunk) {
+              fullResponse += answerChunk;
+              this.currentAgentResponse = fullResponse;
+              this.cdr.detectChanges();
             }
           }
         }
@@ -1133,15 +1431,101 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       this.agentMessages[messageIndex].response = fullResponse;
       this.currentAgentResponse = '';
       
+      // Add assistant message to database (gracefully handle missing table)
+      if (this.selectedConversationId && fullResponse) {
+        try {
+          await this.conversations.addMessage(this.selectedConversationId, {
+            role: 'assistant',
+            content: fullResponse,
+            timestamp: new Date().toISOString()
+          });
+          console.log('✅ Assistant message saved to conversation');
+        } catch (error) {
+          console.warn('⚠️ Failed to save assistant message (table may not exist), continuing in-memory:', error);
+        }
+      }
+      
+      
     } catch (error) {
       console.error('❌ Agent message failed:', error);
       this.agentMessages[messageIndex].response = 'Sorry, I encountered an error processing your request. Please try again.';
+      
     } finally {
+      // Clean up all states
+      this.stopThinkingTimer();
       this.isStreaming = false;
       this.cdr.detectChanges();
+    }
+  }
+
+  // Process individual stream line
+  private processStreamLine(line: string, currentResponse: string): string | null {
+    console.log('📝 Processing line:', line.substring(0, 150) + (line.length > 150 ? '...' : ''));
+    
+    try {
+      // Handle different data formats from backend
+      let jsonStr = '';
       
-      // Save conversation to history after successful response
-      this.saveCurrentConversation();
+      if (line.startsWith('data: data: ')) {
+        // Backend sends: "data: data: {json}"
+        jsonStr = line.substring(12); // Remove "data: data: "
+        console.log('🔍 Found nested data format');
+      } else if (line.startsWith('data: ')) {
+        // Standard format: "data: {json}"
+        jsonStr = line.substring(6); // Remove "data: "
+        console.log('🔍 Found standard data format');
+      } else {
+        console.log('⏭️ Skipping non-data line');
+        return null; // Skip non-data lines
+      }
+      
+      if (jsonStr.trim() === '[DONE]') {
+        console.log('🏁 Stream completion marker received');
+        return null;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(jsonStr);
+        console.log('📊 Parsed data:', data);
+      } catch (parseError) {
+        // Only log if it's not a typical incomplete chunk (reduce console noise)
+        if (!jsonStr.includes('"event"') && jsonStr.length > 50) {
+          console.warn('⚠️ Unexpected JSON parse error:', parseError);
+          console.warn('🔍 Raw content:', jsonStr.substring(0, 100) + '...');
+        }
+        // Skip incomplete JSON chunks - they'll be completed in next iteration
+        return null;
+      }
+      
+      // Handle error responses
+      if (data.event === 'error') {
+        console.error('❌ Backend error received:', data.message || data.error);
+        throw new Error(`Backend error: ${data.message || data.error || 'Unknown error'}`);
+      }
+      
+      // Extract answer from response
+      if (data.answer) {
+        console.log('💬 Answer chunk received:', data.answer.substring(0, 50) + '...');
+        
+        // First chunk received - stop thinking and start typing
+        if (this.isThinking) {
+          console.log('🛑 Stopping thinking timer, starting stream display');
+          this.stopThinkingTimer();
+          this.isStreaming = true;
+        }
+        
+        return data.answer;
+      } else {
+        console.log('❓ No answer field in data:', Object.keys(data));
+        return null;
+      }
+    } catch (e) {
+      // Only log unexpected parsing errors (not typical incomplete chunks)
+      if (line.length > 50 && !line.includes('data:')) {
+        console.warn('⚠️ Failed to parse agent stream line:', line.substring(0, 100), e);
+      }
+      return null;
     }
   }
 
@@ -1158,48 +1542,124 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     this.selectedConversationId = '';
   }
 
-  saveCurrentConversation() {
+  async saveCurrentConversation() {
     if (this.agentMessages.length === 0) return;
     
-    const conversationId = this.selectedConversationId || this.generateConversationId();
-    const existingIndex = this.chatHistory.findIndex(c => c.id === conversationId);
-    
-    const conversation = {
-      id: conversationId,
-      title: this.generateConversationTitle(),
-      timestamp: new Date(),
-      messageCount: this.agentMessages.length,
-      messages: [...this.agentMessages]
-    };
-    
-    if (existingIndex >= 0) {
-      // Update existing conversation
-      this.chatHistory[existingIndex] = conversation;
-    } else {
-      // Add new conversation at the beginning
-      this.chatHistory.unshift(conversation);
+    try {
+      // Check if this is a new conversation or existing one
+      if (this.selectedConversationId) {
+        // Update existing conversation - add the last message
+        const lastMessage = this.agentMessages[this.agentMessages.length - 1];
+        if (lastMessage.response) {
+          await this.conversations.addMessage(this.selectedConversationId, {
+            role: 'assistant',
+            content: lastMessage.response,
+            timestamp: new Date().toISOString(),
+            thinking_time: this.thinkingElapsed > 0 ? this.formatThinkingTime(this.thinkingElapsed) : undefined
+          });
+        }
+      } else {
+        // Create new conversation
+        const conversationId = this.conversations.generateConversationId();
+        const title = this.conversations.generateConversationTitle(this.agentMessages[0].user);
+        
+        await this.conversations.createConversation(conversationId, this.agentMessages[0].user, title);
+        
+        // Add any additional messages (in case of multi-message conversation)
+        for (let i = 0; i < this.agentMessages.length; i++) {
+          const msg = this.agentMessages[i];
+          if (i > 0) { // First user message already added in createConversation
+            await this.conversations.addMessage(conversationId, {
+              role: 'user',
+              content: msg.user,
+              timestamp: new Date().toISOString()
+            });
+          }
+          if (msg.response) {
+            await this.conversations.addMessage(conversationId, {
+              role: 'assistant',
+              content: msg.response,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+        
+        this.selectedConversationId = conversationId;
+      }
+      
+      // Reload chat history to reflect changes
+      await this.loadChatHistory();
+      
+    } catch (error) {
+      console.error('❌ Failed to save conversation:', error);
     }
-    
-    // Keep only last 20 conversations
-    if (this.chatHistory.length > 20) {
-      this.chatHistory = this.chatHistory.slice(0, 20);
-    }
-    
-    this.selectedConversationId = conversationId;
   }
 
-  selectConversation(conversationId: string) {
-    const conversation = this.chatHistory.find(c => c.id === conversationId);
+  // Load chat history from database
+  async loadChatHistory() {
+    try {
+      this.chatHistory = await this.conversations.getConversations();
+      console.log(`✅ Loaded ${this.chatHistory.length} previous conversations`);
+    } catch (error) {
+      console.warn('⚠️ Failed to load chat history (conversations table may not exist):', error);
+      this.chatHistory = [];
+      // Hide the previous chats section if no database support
+      console.log('💡 Previous chats feature requires hawk_agent_conversations table');
+    }
+  }
+
+  async selectConversation(conversationId: string) {
+    // Prevent conversation switching during streaming to avoid losing current conversation
+    if (this.isStreaming || this.isThinking) {
+      console.warn('⚠️ Cannot switch conversations during streaming');
+      return;
+    }
+    
+    // Don't reload if it's the same conversation
+    if (this.selectedConversationId === conversationId) {
+      return;
+    }
+    
+    const conversation = this.chatHistory.find(c => c.conversation_id === conversationId);
     if (conversation) {
       // Save current conversation before switching
       if (this.agentMessages.length > 0 && this.selectedConversationId !== conversationId) {
-        this.saveCurrentConversation();
+        await this.saveCurrentConversation();
       }
       
+      // Convert database format to component format
       this.selectedConversationId = conversationId;
-      this.agentMessages = [...conversation.messages];
+      this.agentMessages = this.convertDatabaseMessagesToComponent(conversation.messages);
       this.currentAgentResponse = '';
+      this.cdr.detectChanges();
     }
+  }
+
+  // Helper method to convert database messages to component format
+  private convertDatabaseMessagesToComponent(dbMessages: any[]): Array<{user: string, response: string}> {
+    const componentMessages: Array<{user: string, response: string}> = [];
+    
+    for (let i = 0; i < dbMessages.length; i++) {
+      const msg = dbMessages[i];
+      
+      if (msg.role === 'user') {
+        // Find the next assistant message if it exists
+        const nextMsg = dbMessages[i + 1];
+        const response = (nextMsg && nextMsg.role === 'assistant') ? nextMsg.content : '';
+        
+        componentMessages.push({
+          user: msg.content,
+          response: response
+        });
+        
+        // Skip the assistant message since we already processed it
+        if (nextMsg && nextMsg.role === 'assistant') {
+          i++;
+        }
+      }
+    }
+    
+    return componentMessages;
   }
 
   clearCurrentConversation() {
@@ -1208,14 +1668,14 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     
     // Remove from history if it exists
     if (this.selectedConversationId) {
-      this.chatHistory = this.chatHistory.filter(c => c.id !== this.selectedConversationId);
+      this.chatHistory = this.chatHistory.filter(c => c.conversation_id !== this.selectedConversationId);
       this.selectedConversationId = '';
     }
   }
 
   getCurrentConversationTitle(): string {
     if (this.selectedConversationId) {
-      const conversation = this.chatHistory.find(c => c.id === this.selectedConversationId);
+      const conversation = this.chatHistory.find(c => c.conversation_id === this.selectedConversationId);
       return conversation?.title || 'Conversation';
     }
     return this.agentMessages.length > 0 ? this.generateConversationTitle() : 'New Conversation';
@@ -1223,8 +1683,8 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   getCurrentTimestamp(): string {
     if (this.selectedConversationId) {
-      const conversation = this.chatHistory.find(c => c.id === this.selectedConversationId);
-      return conversation ? new Date(conversation.timestamp).toLocaleString() : '';
+      const conversation = this.chatHistory.find(c => c.conversation_id === this.selectedConversationId);
+      return conversation ? new Date(conversation.updated_at || conversation.created_at || '').toLocaleString() : '';
     }
     return new Date().toLocaleString();
   }
@@ -1252,6 +1712,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   }
 
   stopStreaming() {
+    this.stopThinkingTimer();
     this.isStreaming = false;
     this.cdr.detectChanges();
   }
@@ -1273,6 +1734,148 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     return title || 'Untitled Conversation';
   }
 
+  // Thinking timer methods
+  startThinkingTimer() {
+    this.isThinking = true;
+    this.thinkingStartTime = Date.now();
+    this.thinkingElapsed = 0;
+    
+    this.thinkingTimer = setInterval(() => {
+      this.thinkingElapsed = Date.now() - this.thinkingStartTime;
+      this.cdr.detectChanges();
+    }, 100); // Update every 100ms for smooth counting
+  }
+
+  stopThinkingTimer() {
+    this.isThinking = false;
+    if (this.thinkingTimer) {
+      clearInterval(this.thinkingTimer);
+      this.thinkingTimer = null;
+    }
+  }
+
+  formatThinkingTime(elapsed: number): string {
+    const seconds = Math.floor(elapsed / 1000);
+    const tenths = Math.floor((elapsed % 1000) / 100);
+    return `${seconds}.${tenths}s`;
+  }
+
+  // Format response for ChatGPT-like display with proper table handling
+  formatResponse(response: string): string {
+    if (!response) return '';
+    
+    let formatted = response;
+    
+    // Handle markdown tables properly
+    formatted = this.parseMarkdownTables(formatted);
+    
+    // Convert markdown headers to HTML with proper styling
+    formatted = formatted.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-gray-900 mt-6 mb-3">$1</h3>');
+    formatted = formatted.replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-4">$1</h2>');
+    formatted = formatted.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-gray-900 mt-6 mb-4">$1</h1>');
+    
+    // Convert markdown bold and italic
+    formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+    formatted = formatted.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>');
+    
+    // Convert markdown lists
+    formatted = formatted.replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>');
+    formatted = formatted.replace(/(<li.*<\/li>)/gs, '<ul class="list-disc pl-6 my-3">$1</ul>');
+    
+    // Convert numbered lists
+    formatted = formatted.replace(/^\d+\. (.+)$/gm, '<li class="ml-4">$1</li>');
+    formatted = formatted.replace(/(<li.*<\/li>)/gs, (match) => {
+      if (!match.includes('list-disc')) {
+        return `<ol class="list-decimal pl-6 my-3">${match}</ol>`;
+      }
+      return match;
+    });
+    
+    // Convert line breaks to proper spacing
+    formatted = formatted.replace(/\n\n/g, '</p><p class="mb-4">');
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    // Wrap in paragraph tags
+    if (!formatted.startsWith('<')) {
+      formatted = `<p class="mb-4">${formatted}</p>`;
+    }
+    
+    return formatted;
+  }
+
+  // Enhanced markdown table parser
+  private parseMarkdownTables(text: string): string {
+    const lines = text.split('\n');
+    let result: string[] = [];
+    let i = 0;
+    
+    while (i < lines.length) {
+      const line = lines[i];
+      
+      // Check if this line starts a markdown table (contains |)
+      if (line.trim().includes('|') && line.trim().startsWith('|') && line.trim().endsWith('|')) {
+        // Found potential table start
+        let tableLines: string[] = [];
+        let tableStart = i;
+        
+        // Collect all consecutive table lines
+        while (i < lines.length && lines[i].trim().includes('|') && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        
+        if (tableLines.length > 0) {
+          // Parse the table
+          const tableHtml = this.convertTableToHtml(tableLines);
+          result.push(tableHtml);
+          continue;
+        } else {
+          i = tableStart; // Reset if no table found
+        }
+      }
+      
+      // Not a table line, add as-is
+      result.push(line);
+      i++;
+    }
+    
+    return result.join('\n');
+  }
+
+  private convertTableToHtml(tableLines: string[]): string {
+    if (tableLines.length === 0) return '';
+    
+    let tableHtml = '<table class="min-w-full border-collapse border border-gray-300 my-4 bg-white shadow-sm rounded-lg overflow-hidden">';
+    
+    // Process each line
+    for (let i = 0; i < tableLines.length; i++) {
+      const line = tableLines[i].trim();
+      
+      // Skip separator lines (lines with only |, -, :, and spaces)
+      if (/^[\|\-\:\s]+$/.test(line)) {
+        continue;
+      }
+      
+      // Parse cells
+      const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+      
+      if (cells.length > 0) {
+        const isHeader = i === 0; // First non-separator line is header
+        const tag = isHeader ? 'th' : 'td';
+        const headerClass = isHeader ? 'bg-gray-50 font-semibold text-gray-900' : 'bg-white text-gray-800';
+        
+        tableHtml += '<tr>';
+        cells.forEach(cell => {
+          tableHtml += `<${tag} class="px-4 py-3 border border-gray-300 text-sm ${headerClass}">${cell || '&nbsp;'}</${tag}>`;
+        });
+        tableHtml += '</tr>';
+      }
+    }
+    
+    tableHtml += '</table>';
+    return tableHtml;
+  }
+
   // Results actions (existing stubs)
   exportReport(){ console.log('Export report clicked'); }
   createTicket(){ console.log('Create ticket clicked'); }
@@ -1289,7 +1892,8 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   }
 
   private generateInstructionId(): string {
-    return `INST_${Date.now()}_${this.instructionIdCounter++}`;
+    // Keep instruction_id short to fit character varying(10) constraint
+    return `I${this.instructionIdCounter++}`;
   }
 
   // Database session management (existing logic)
@@ -1335,9 +1939,12 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     this.router.navigate([], { queryParams: qp, queryParamsHandling: 'merge' });
   }
 
-  // Keyboard navigation (existing logic)
+  // Keyboard navigation (existing logic) - ONLY active in template mode
   @HostListener('keydown', ['$event'])
   onKeydown(e: KeyboardEvent){
+    // CRITICAL FIX: Don't trigger template mode actions when in agent mode
+    if (this.isAgentMode) return;
+    
     if (!this.filtered?.length) return;
     if (e.key === 'ArrowDown'){ 
       this.selectedIndex = Math.min(this.filtered.length - 1, Math.max(0, this.selectedIndex) + 1); 
@@ -1349,9 +1956,257 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       e.preventDefault(); 
       this.persistAndSyncUrl(); 
     }
-    if (e.key === 'Enter'){ 
-      this.submit({ text: this.selectedTemplate?.prompt_text || '', values: {} }); 
-      e.preventDefault(); 
+    if (e.key === 'Enter'){
+      this.submit({ text: this.selectedTemplate?.prompt_text || '', values: {} });
+      e.preventDefault();
     }
+  }
+
+  // HAWK Agent Methods
+  onHawkAgentChange(agentKey: string) {
+    console.log('🔄 Changing HAWK Agent from', this.selectedHawkAgent, 'to', agentKey);
+    this.selectedHawkAgent = agentKey as keyof typeof HAWK_AGENTS;
+    // Persist to localStorage to prevent rotation
+    try {
+      localStorage.setItem('selectedHawkAgent', agentKey);
+      console.log('💾 Persisted HAWK Agent to localStorage:', agentKey);
+    } catch (e) {
+      console.warn('⚠️ Failed to persist HAWK Agent to localStorage:', e);
+    }
+    this.updateAgentUrl();
+    console.log(`✅ Switched to ${this.getCurrentHawkAgent().name} with API key: ${this.getCurrentHawkAgent().apiKey}`);
+  }
+
+  selectHawkAgent(agentKey: string) {
+    this.onHawkAgentChange(agentKey);
+    this.showAgentMenu = false; // Close the dropdown menu
+    this.updateWelcomeContent(); // Update welcome content when agent changes
+  }
+
+  updateWelcomeContent() {
+    this.suggestedPrompts = this.getPromptsForAgent(this.selectedHawkAgent);
+  }
+
+  getPromptsForAgent(agentKey: keyof typeof HAWK_AGENTS) {
+    switch (agentKey) {
+      case 'allocation':
+        return this.allocationPrompts;
+      case 'booking':
+        return this.bookingPrompts;
+      case 'analytics':
+        return this.analyticsPrompts;
+      case 'config':
+        return this.configPrompts;
+      default:
+        return this.defaultPrompts;
+    }
+  }
+
+  // Dynamic API routing for Template Mode based on family and category
+  getApiKeyForTemplate(family: string, category: string): { agentKey: keyof typeof HAWK_AGENTS, apiKey: string, agentName: string } {
+    const fam = (family || '').toLowerCase();
+    const cat = (category || '').toLowerCase();
+
+    // Configuration & Setup family (and variants) → Config Agent
+    if (fam.includes('config') || fam.includes('setup')) {
+      return {
+        agentKey: 'config',
+        apiKey: this.hawkAgents.config.apiKey,
+        agentName: this.hawkAgents.config.name
+      };
+    }
+
+    // Instructions & Processing family routing
+    if (fam.includes('instruction') && fam.includes('processing')) {
+      // Inception category → Allocation Agent (app-MHztrttE0Ty6jOqykQrp6rL2)
+      if (cat.includes('inception')) {
+        return {
+          agentKey: 'allocation',
+          apiKey: this.hawkAgents.allocation.apiKey,
+          agentName: this.hawkAgents.allocation.name
+        };
+      }
+
+      // Utilisation/Utilization category → Booking Agent (app-cxzVbRQUUDofTjx1nDfajpRX)
+      if (cat.includes('utilization') || cat.includes('utilisation')) {
+        return {
+          agentKey: 'booking',
+          apiKey: this.hawkAgents.booking.apiKey,
+          agentName: this.hawkAgents.booking.name
+        };
+      }
+
+      // Rest of Instructions & Processing categories → Analytics Agent (app-KKtaMynVyn8tKbdV9VbbaeyR)
+      return {
+        agentKey: 'analytics',
+        apiKey: this.hawkAgents.analytics.apiKey,
+        agentName: this.hawkAgents.analytics.name
+      };
+    }
+
+    // All other families → Analytics Agent (app-KKtaMynVyn8tKbdV9VbbaeyR)
+    return {
+      agentKey: 'analytics',
+      apiKey: this.hawkAgents.analytics.apiKey,
+      agentName: this.hawkAgents.analytics.name
+    };
+  }
+
+  private updateAgentUrl() {
+    const agent = this.hawkAgents[this.selectedHawkAgent];
+    this.agentUrlSafe = this.sanitizer.bypassSecurityTrustResourceUrl(agent.url);
+  }
+
+  getCurrentHawkAgent() {
+    return this.hawkAgents[this.selectedHawkAgent];
+  }
+
+  getHawkAgentOptions() {
+    const options = Object.keys(this.hawkAgents).map(key => ({
+      key,
+      name: this.hawkAgents[key as keyof typeof HAWK_AGENTS].name
+    }));
+    console.log('HAWK dropdown options:', options.map(o => o.name));
+    return options;
+  }
+
+  getHawkStageBadgeClass(stage: string): string {
+    const stageClasses: { [key: string]: string } = {
+      '1A': 'bg-green-100 text-green-800 border border-green-200',
+      '1B': 'bg-blue-100 text-blue-800 border border-blue-200',
+      '2': 'bg-orange-100 text-orange-800 border border-orange-200',
+      '3': 'bg-red-100 text-red-800 border border-red-200'
+    };
+    return stageClasses[stage] || 'bg-gray-100 text-gray-800 border border-gray-200';
+  }
+
+  // Conversation Management Methods
+  toggleConversationMenu(conversationId: string, event: Event) {
+    event.stopPropagation(); // Prevent conversation selection
+    this.activeConversationMenu = this.activeConversationMenu === conversationId ? null : conversationId;
+  }
+
+  confirmDeleteConversation(conversationId: string, title: string) {
+    this.conversationToDelete = { id: conversationId, title };
+    this.showDeleteConfirmation = true;
+    this.activeConversationMenu = null; // Close the menu
+  }
+
+  cancelDeleteConversation() {
+    this.showDeleteConfirmation = false;
+    this.conversationToDelete = null;
+  }
+
+  async deleteConversation() {
+    if (!this.conversationToDelete) return;
+
+    try {
+      // Delete from database
+      await this.conversations.deleteConversation(this.conversationToDelete.id);
+
+      // Remove from local array
+      this.chatHistory = this.chatHistory.filter(
+        conv => conv.conversation_id !== this.conversationToDelete!.id
+      );
+
+      // If this was the selected conversation, clear selection
+      if (this.selectedConversationId === this.conversationToDelete.id) {
+        this.selectedConversationId = '';
+        this.agentMessages = [];
+        this.currentAgentResponse = '';
+      }
+
+      console.log('✅ Conversation deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete conversation:', error);
+      // You could add a toast notification here
+    } finally {
+      this.cancelDeleteConversation();
+    }
+  }
+
+  // Message Action Methods
+  copyMessage(content: string) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(content).then(() => {
+        console.log('✅ Message copied to clipboard');
+        // You could add a toast notification here
+      }).catch(err => {
+        console.error('❌ Failed to copy message:', err);
+      });
+    }
+  }
+
+  reloadMessage(userPrompt: string) {
+    // Set the agent prompt and trigger resend
+    this.agentPrompt = userPrompt;
+    this.sendAgentMessage();
+  }
+
+  exportToPDF(message: {user: string, response: string}, index: number) {
+    // Create conversation context up to this point
+    const conversationContext = this.agentMessages.slice(0, index + 1);
+    const conversationTitle = this.getCurrentConversationTitle();
+
+    // Generate PDF content
+    const pdfContent = this.generatePDFContent(conversationContext, conversationTitle);
+
+    // Create and download PDF
+    this.downloadPDF(pdfContent, `${conversationTitle}_conversation.pdf`);
+  }
+
+  exportToJSON(response: string) {
+    const exportData = {
+      timestamp: new Date().toISOString(),
+      agent: this.getCurrentHawkAgent().name,
+      response: response,
+      metadata: {
+        agent_key: this.selectedHawkAgent,
+        conversation_id: this.selectedConversationId || 'temp'
+      }
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hawk_response_${Date.now()}.json`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+    console.log('✅ Response exported to JSON');
+  }
+
+  private generatePDFContent(conversation: Array<{user: string, response: string}>, title: string): string {
+    let content = `HAWK Agent Conversation Export\n`;
+    content += `Title: ${title}\n`;
+    content += `Agent: ${this.getCurrentHawkAgent().name}\n`;
+    content += `Date: ${new Date().toLocaleString()}\n`;
+    content += `\n${'='.repeat(50)}\n\n`;
+
+    conversation.forEach((message, index) => {
+      content += `Message ${index + 1}:\n`;
+      content += `User: ${message.user}\n\n`;
+      content += `${this.getCurrentHawkAgent().name}: ${message.response}\n\n`;
+      content += `${'-'.repeat(30)}\n\n`;
+    });
+
+    return content;
+  }
+
+  private downloadPDF(content: string, filename: string) {
+    // For now, create a text file (PDF generation would require a library like jsPDF)
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename.replace('.pdf', '.txt');
+    link.click();
+
+    URL.revokeObjectURL(url);
+    console.log('✅ Conversation exported to text file');
   }
 }

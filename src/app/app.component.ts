@@ -169,6 +169,7 @@ export class AppComponent implements OnInit {
   private setOperationsSubmenu() {
     this.currentSubMenuItems = [
       { label: 'Hedge Instructions', icon: 'pi pi-pencil', link: '/operations/hedge-instructions' },
+      { label: 'Hedge Business Events', icon: 'pi pi-calendar', link: '/operations/hedge-business-events' },
       { label: 'Apportionment Table', icon: 'pi pi-table', link: '/operations/apportionment-table' },
       { label: 'Murex Booking', icon: 'pi pi-database', link: '/operations/murex-booking' },
       { label: 'Accounting Hub / GL Bookings', icon: 'pi pi-book', link: '/operations/accounting-hub' },

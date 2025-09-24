@@ -187,9 +187,9 @@ export class PromptTemplatesComponent implements OnInit, OnDestroy {
   form: Partial<PromptTemplate> = {};
   placeholderText = `Enter your prompt template here...
 
-📝 TEMPLATE PATTERN: Use {{field_name}} for input fields
+ TEMPLATE PATTERN: Use {{field_name}} for input fields
 
-✅ RECOMMENDED EXAMPLES:
+ RECOMMENDED EXAMPLES:
 
 Risk Management:
 Calculate VaR for {{portfolio_name}} with {{confidence_level}}% confidence over {{time_horizon}} days using {{methodology}} method.
@@ -200,15 +200,15 @@ Analyze {{hedge_type}} effectiveness for {{entity}} covering {{currency}} exposu
 Compliance Check:
 Review {{regulation_type}} compliance for {{business_line}} with threshold {{threshold_amount}} in {{base_currency}}.
 
-🔧 FIELD NAMING BEST PRACTICES:
-• Use lowercase with underscores: {{field_name}}
-• Common fields: {{entity}}, {{currency}}, {{amount}}, {{date}}
-• Descriptive names: {{start_date}}, {{end_date}}, {{risk_type}}
+ FIELD NAMING BEST PRACTICES:
+ Use lowercase with underscores: {{field_name}}
+ Common fields: {{entity}}, {{currency}}, {{amount}}, {{date}}
+ Descriptive names: {{start_date}}, {{end_date}}, {{risk_type}}
 
-💡 FIELD TYPES SUPPORTED:
-• Text: {{entity}}, {{currency}}, {{description}}
-• Numbers: {{amount}}, {{rate}}, {{percentage}}  
-• Dates: {{date}}, {{maturity_date}}
+ FIELD TYPES SUPPORTED:
+ Text: {{entity}}, {{currency}}, {{description}}
+ Numbers: {{amount}}, {{rate}}, {{percentage}}  
+ Dates: {{date}}, {{maturity_date}}
 
 Input fields will be automatically created from {{field_name}} patterns.`;
   

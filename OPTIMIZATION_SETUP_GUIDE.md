@@ -2,14 +2,14 @@
 
 This guide walks you through setting up the optimized Dify integration with parallel data fetching, Redis caching, and smart context preparation.
 
-## 🚀 Performance Improvements Expected
+##  Performance Improvements Expected
 
-- **Query Response Time**: 70-80% faster (2-3 seconds → 200-500ms)
+- **Query Response Time**: 70-80% faster (2-3 seconds  200-500ms)
 - **Data Volume Reduction**: 90% less irrelevant data sent to Dify
 - **Cache Hit Rate**: 70-80% for repeated queries
 - **Context Preparation**: Intelligent filtering based on prompt analysis
 
-## 📋 Prerequisites
+##  Prerequisites
 
 ### 1. Python Dependencies
 ```bash
@@ -39,7 +39,7 @@ DIFY_API_KEY=your-dify-api-key-here
 REDIS_URL=redis://localhost:6379/0
 ```
 
-## 🛠️ Installation Steps
+##  Installation Steps
 
 ### Step 1: Deploy Optimized FastAPI Services
 
@@ -100,7 +100,7 @@ AND table_name IN (
 );
 ```
 
-## 🔧 Configuration Options
+##  Configuration Options
 
 ### Redis Cache Configuration
 
@@ -131,7 +131,7 @@ entity_patterns = [
 ]
 ```
 
-## 📊 Monitoring and Performance
+##  Monitoring and Performance
 
 ### Check Performance Statistics
 ```bash
@@ -175,19 +175,19 @@ redis-cli
 
 Open browser developer tools and watch for optimization logs:
 ```
-🚀 Sending optimized Dify request: {...}
-✅ Optimized Dify response received: {...}
-📊 Dify Performance Metrics: {
+ Sending optimized Dify request: {...}
+ Optimized Dify response received: {...}
+ Dify Performance Metrics: {
   totalTime: "450ms",
   contextPrepTime: "200ms",
   difyResponseTime: "250ms",
   contextSource: "cache",
-  optimization: "🚀 Fast context preparation",
-  cacheStatus: "💾 Cache Hit"
+  optimization: " Fast context preparation",
+  cacheStatus: " Cache Hit"
 }
 ```
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -238,7 +238,7 @@ start_time = datetime.now()
 logger.debug(f"Operation completed in {(datetime.now() - start_time).total_seconds()}s")
 ```
 
-## 🎯 Feature Flags
+##  Feature Flags
 
 Control optimization features via configuration:
 ```typescript
@@ -256,7 +256,7 @@ export const environment = {
 };
 ```
 
-## 🚢 Production Deployment
+##  Production Deployment
 
 ### 1. Docker Deployment
 ```dockerfile
@@ -290,16 +290,16 @@ ab -n 100 -c 10 http://your-server/api/v2/dify/performance-stats
 ab -n 100 -c 10 http://your-server/api/v1/dify/chat
 ```
 
-## 🎉 Success Metrics
+##  Success Metrics
 
 After setup, you should see:
-- ✅ Response times under 1 second for cached queries
-- ✅ 70%+ cache hit rate after initial warmup
-- ✅ Detailed performance metrics in console
-- ✅ Reduced Dify token usage due to focused context
-- ✅ Automatic fallback to legacy system if needed
+-  Response times under 1 second for cached queries
+-  70%+ cache hit rate after initial warmup
+-  Detailed performance metrics in console
+-  Reduced Dify token usage due to focused context
+-  Automatic fallback to legacy system if needed
 
-## 📞 Support
+##  Support
 
 If you encounter issues:
 1. Check the troubleshooting section above

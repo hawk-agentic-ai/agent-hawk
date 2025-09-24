@@ -10,7 +10,11 @@
     "lint": "node ./node_modules/@angular/cli/bin/ng.js lint",
     "dev": "node ./node_modules/@angular/cli/bin/ng.js serve --port 4200 --host 0.0.0.0 --disable-host-check",
     "serve": "http-server ./dist/hedge-accounting-sfx -p 3000 --cors -a 0.0.0.0 -c-1",
-    "serve:prod": "node server.js"
+    "serve:prod": "node server.js",
+    "smoke:status": "python tools/local_smoke_test.py status",
+    "smoke": "python tools/local_smoke_test.py",
+    "backend:py": "python unified_smart_backend.py",
+    "backend": "python -m uvicorn unified_smart_backend:app --reload --port 8004"
   },
   "private": true,
   "dependencies": {
