@@ -1,15 +1,60 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Production builds
 dist/
 build/
-.angular/
-npm-debug.log*
-pnpm-debug.log*
-.env
-.env.*
+out-tsc/
 
 # Angular cache
 .angular/
-# Builds
-dist/
-# Deps
-node_modules/
+
+# Environment files
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Archives
+*.tar.gz
+*.zip
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
