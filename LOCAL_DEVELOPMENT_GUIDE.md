@@ -309,18 +309,30 @@ python unified_smart_backend.py --disable-cors
 # Check if backend is running on correct port
 curl http://localhost:8004/api/health
 
-# Check Angular proxy configuration
-# Create proxy.conf.json:
+# The proxy.conf.json file should already exist with:
 {
   "/api/*": {
     "target": "http://localhost:8004",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/mcp/*": {
+    "target": "http://localhost:8009",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/dify/*": {
+    "target": "http://localhost:8010",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
   }
 }
 
-# Start Angular with proxy
-ng serve --proxy-config proxy.conf.json
+# Angular will automatically use proxy.conf.json when running
+npm run start
 ```
 
 ## 🚀 Development Workflow

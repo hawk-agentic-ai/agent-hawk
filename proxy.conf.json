@@ -1,0 +1,20 @@
+{
+  "/api/*": {
+    "target": "http://localhost:8004",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/mcp/*": {
+    "target": "http://localhost:8009",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/dify/*": {
+    "target": "http://localhost:8010",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
