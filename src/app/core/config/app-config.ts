@@ -4,7 +4,7 @@ export const HAWK_AGENTS = {
     name: 'HAWK Allocation Agent',
     description: 'Stage 1A: Pre‑utilization check & feasibility assessment',
     url: 'https://udify.app/chat/uPrwnPv2TV6UKQ9X',
-    apiKey: 'app-MHztrttE0Ty6jOqykQrp6rL2',
+    apiKey: 'app-cxzVbRQUUDofTjx1nDfajpRX',
     stages: ['1A'],
     scope: ['utilization', 'feasibility', 'capacity']
   },
@@ -12,7 +12,7 @@ export const HAWK_AGENTS = {
     name: 'HAWK Booking Agent',
     description: 'Stage 1B/2/3: Booking, execution & GL posting',
     url: 'https://udify.app/chat/jAkq2aHd4HTx5BxS',
-    apiKey: 'app-cxzVbRQUUDofTjx1nDfajpRX',
+    apiKey: 'app-MHztrttE0Ty6jOqykQrp6rL2',
     stages: ['1B', '2', '3'],
     scope: ['booking', 'murex', 'gl_posting', 'trade_execution']
   },

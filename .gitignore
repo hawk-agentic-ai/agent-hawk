@@ -58,3 +58,5 @@ Thumbs.db
 *.pem
 *.key
 *.crt
+hedge_agent_env/
+nul

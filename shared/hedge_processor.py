@@ -10,13 +10,17 @@ import os
 import logging
 import time
 import hashlib
+import random
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from .business_logic import PromptIntelligenceEngine, PromptAnalysisResult, PromptIntent, analyze_prompt
-from .data_extractor import SmartDataExtractor  
+from .data_extractor import SmartDataExtractor
 from .supabase_client import DatabaseManager
 from .cache_manager import get_cache_duration, OPTIMIZATION_STATS
+from .transaction_manager import DatabaseTransactionManager, WriteOperation, atomic_hedge_inception, atomic_booking_and_gl
+from .mcp_tool_bridges import initialize_mcp_bridge, get_mcp_bridge
+from .cache_invalidation import initialize_cache_invalidation
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,9 @@ class HedgeFundProcessor:
         self.prompt_engine = None
         self.data_extractor = None
         self.table_hints = None
-        
+        self.transaction_manager = None
+        self.write_validator = None
+
         # Performance tracking
         self.total_requests = 0
         self.total_processing_time = 0
@@ -46,6 +52,29 @@ class HedgeFundProcessor:
             # Initialize intelligent modules
             self.prompt_engine = PromptIntelligenceEngine()
             self.data_extractor = SmartDataExtractor(self.supabase_client, self.redis_client)
+
+            # Initialize write validator and transaction manager
+            try:
+                from .write_validator import StrictWriteValidator
+                self.write_validator = StrictWriteValidator(self.supabase_client)
+                logger.info("Write validator initialized")
+            except ImportError as e:
+                logger.warning(f"Write validator not available: {e}")
+                self.write_validator = None
+
+            self.transaction_manager = DatabaseTransactionManager(
+                self.supabase_client,
+                self.write_validator
+            )
+            logger.info("Transaction manager initialized")
+
+            # Initialize cache invalidation manager
+            initialize_cache_invalidation(self.redis_client)
+            logger.info("Cache invalidation manager initialized")
+
+            # Initialize MCP tool bridge
+            initialize_mcp_bridge(self)
+            logger.info("MCP tool bridge initialized")
 
             # Load optional table hints (non-blocking guardrails)
             try:
@@ -141,8 +170,14 @@ class HedgeFundProcessor:
             # Step 2: Extract required data
             logger.info(f"Intent: {analysis_result.intent.value}, Confidence: {analysis_result.confidence}")
 
+            # Pass currency parameters to data extraction for filtering
             extracted_data = await self.data_extractor.extract_data_for_prompt(
-                analysis_result, use_cache=use_cache
+                analysis_result,
+                use_cache=use_cache,
+                currency=currency,
+                entity_id=entity_id,
+                nav_type=nav_type,
+                amount=amount
             )
 
             # Step 2.5: Do NOT auto-promote reads to writes. Only write when explicitly requested
@@ -173,7 +208,8 @@ class HedgeFundProcessor:
                     currency=currency, entity_id=entity_id, nav_type=nav_type, amount=amount,
                     write_data=write_data, instruction_id=instruction_id,
                     execute_booking=execute_booking, execute_posting=execute_posting,
-                    ai_decisions=ai_decisions  # Pass AI decisions to write operations
+                    ai_decisions=ai_decisions,  # Pass AI decisions to write operations
+                    detected_stage=detected_stage  # Pass detected stage to write operations
                 )
             
             # Step 4: Build optimized context
@@ -773,7 +809,8 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
                                      instruction_id: Optional[str] = None,
                                      execute_booking: bool = False,
                                      execute_posting: bool = False,
-                                     ai_decisions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                                     ai_decisions: Optional[Dict[str, Any]] = None,
+                                     detected_stage: str = "auto") -> Dict[str, Any]:
         """
         Execute database write operations based on operation type
         """
@@ -788,7 +825,7 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
             
             if operation_type == "write":
                 results.update(await self._execute_write(
-                    user_prompt, analysis_result, write_data, currency, entity_id, nav_type, amount, ai_decisions
+                    user_prompt, analysis_result, write_data, currency, entity_id, nav_type, amount, ai_decisions, detected_stage
                 ))
             
             elif operation_type == "amend":
@@ -830,8 +867,9 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
     
     async def _execute_write(self, user_prompt: str, analysis_result: PromptAnalysisResult,
                            write_data: Dict[str, Any], currency: str, entity_id: str,
-                           nav_type: str, amount: float, ai_decisions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute hedge instruction write operations with full table access"""
+                           nav_type: str, amount: float, ai_decisions: Optional[Dict[str, Any]] = None,
+                           detected_stage: str = "auto") -> Dict[str, Any]:
+        """Execute hedge instruction write operations with ATOMIC TRANSACTIONS"""
         try:
             # Validate write_data is a dictionary
             if write_data is not None and not isinstance(write_data, dict):
@@ -859,8 +897,9 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
 
             logger.info(f"Executing write operations with {'AI-driven' if ai_decisions else 'fallback'} parameter selection")
 
-            # Allocation Engine Operations - AI-DRIVEN PARAMETER SELECTION
-            if analysis_result.intent.value == "hedge_utilization" or (write_data and (write_data and write_data.get("target_table")) == "allocation_engine"):
+            # Allocation Engine Operations - ONLY FOR STAGE 1B/2 (ACTUAL ALLOCATION)
+            # Stage 1A utilization checks should NOT write to allocation_engine
+            if (write_data and write_data.get("target_table") == "allocation_engine") or (detected_stage in ["1B", "2"] and analysis_result.intent.value == "hedge_utilization"):
                 allocation_data = {
                     "allocation_id": (write_data and write_data.get("allocation_id")) or f"ALLOC_{int(time.time())}",
                     "request_id": (write_data and write_data.get("request_id")) or f"REQ_{int(time.time())}",
@@ -920,6 +959,12 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
                 except Exception as _e:
                     logger.debug(f"Instruction fallback param derive failed: {_e}")
 
+                # Generate msg_uid if not provided in write_data
+                current_time = datetime.now()
+                date_str = current_time.strftime("%d%m%y")
+                random_num = random.randint(1, 999)
+                fallback_msg_uid = f"HAWK_1A_{date_str}_EXEC_{random_num:03d}"
+
                 instruction_data = {
                     "instruction_id": (write_data and write_data.get("instruction_id")) or f"INST_{analysis_result.intent.value.upper()}_{int(time.time())}",
                     "instruction_type": (write_data and write_data.get("instruction_type")) or analysis_result.intent.value[6:7].upper(),  # Extract I/R/T
@@ -931,7 +976,8 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
                     "created_date": datetime.now().isoformat(),
                     "received_timestamp": datetime.now().isoformat(),
                     "instruction_date": (write_data and write_data.get("instruction_date")) or datetime.now().date().isoformat(),
-                    "trace_id": (write_data and write_data.get("trace_id")) or f"HI-INST_{int(time.time())}"
+                    "trace_id": (write_data and write_data.get("trace_id")) or f"HI-INST_{int(time.time())}",
+                    "msg_uid": (write_data and write_data.get("msg_uid")) or fallback_msg_uid  # Ensure msg_uid is always present
                 }
 
                 if write_data:
@@ -952,6 +998,47 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
                     results["details"]["hedge_instructions"] = result.data[0] if result.data else None
                     results["tables_modified"].append("hedge_instructions")
                     logger.info(f"Successfully inserted into hedge_instructions: {len(result.data) if result.data else 0} records")
+
+                    # AUTO-GENERATE BUSINESS EVENT FOR STAGE 1A FEASIBILITY SUCCESS
+                    # Only create business events for feasible operations (Pass/Partial)
+                    instruction_result = result.data[0] if result.data else None
+                    if instruction_result and detected_stage == "1A":
+                        from .dynamic_write_generator import dynamic_write_generator
+
+                        # Determine feasibility result from instruction status/check_status
+                        instruction_status = instruction_result.get("instruction_status", "")
+                        check_status = instruction_result.get("check_status", "")
+
+                        # Map instruction status to feasibility result
+                        feasibility_result = "Pass"  # Default
+                        if check_status == "Fail" or instruction_status == "Failed":
+                            feasibility_result = "Fail"
+                        elif "Partial" in instruction_status or check_status == "Warning":
+                            feasibility_result = "Partial"
+
+                        # Generate business event for Pass/Partial only
+                        if feasibility_result in ["Pass", "Partial"]:
+                            business_event_data = dynamic_write_generator.generate_business_event_data(
+                                instruction_id=instruction_result.get("instruction_id"),
+                                feasibility_result=feasibility_result,
+                                currency=currency,
+                                entity_id=entity_id,
+                                nav_type=nav_type,
+                                amount=amount
+                            )
+
+                            if business_event_data:
+                                try:
+                                    # Remove target_table before insert
+                                    event_insert_data = {k: v for k, v in business_event_data.items() if k != "target_table"}
+                                    event_result = self.supabase_client.table("hedge_business_events").insert(event_insert_data).execute()
+                                    results["records_affected"] += len(event_result.data) if event_result.data else 0
+                                    results["details"]["hedge_business_events"] = event_result.data[0] if event_result.data else None
+                                    results["tables_modified"].append("hedge_business_events")
+                                    logger.info(f"Auto-generated business event for instruction {instruction_result.get('instruction_id')}")
+                                except Exception as e:
+                                    logger.error(f"Failed to auto-generate business event: {e}")
+                                    results["details"]["hedge_business_events_error"] = str(e)
                 except Exception as e:
                     # Idempotent handling for duplicate (23505): fetch by msg_uid if provided
                     err_txt = str(e)
@@ -1378,7 +1465,8 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
             posting_data = {
                 "stage_3_status": "In_Progress" if execute_posting else "Pending",
                 "gl_posting_status": "In_Progress" if execute_posting else "Pending",
-                "last_stage_3_update": datetime.now().isoformat(),
+                "modified_date": datetime.now().isoformat(),  # Use standard modified_date instead
+                "modified_by": "HAWK_AGENT",
                 "notes": f"GL posting initiated via: {user_prompt[:100]}"
             }
             

@@ -46,7 +46,7 @@ export interface TemplateConfig {
 })
 export class ComprehensiveHedgeService {
   
-  private readonly API_BASE = 'http://3.91.170.95:8003/hedge-ai';
+  private readonly API_BASE = 'https://3-238-163-106.nip.io/api/hedge-ai';
   
   // Template configurations for each instruction type
   readonly TEMPLATE_CONFIGS: TemplateConfig[] = [

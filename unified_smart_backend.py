@@ -40,6 +40,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Environment variables loaded from .env file")
+except ImportError:
+    print("⚠️  python-dotenv not available, using system environment variables")
+    pass
+
 # Supabase integration
 from supabase import create_client, Client
 
@@ -154,26 +163,43 @@ class ProcessingMetadata(BaseModel):
 # UTILITY FUNCTIONS
 # =============================================================================
 
-def get_dify_headers(agent_id: Optional[str] = None):
+def get_dify_headers(agent_id: Optional[str] = None, api_key_override: Optional[str] = None):
     """Select Dify API key based on agent_id and build headers"""
+    # If API key provided directly (from frontend), use it
+    if api_key_override:
+        return {
+            "Authorization": f"Bearer {api_key_override}",
+            "Content-Type": "application/json"
+        }
+
     selected_key_env = None
     if agent_id:
         # Map known agent IDs to specific env vars
-        if agent_id == "allocation":
-            selected_key_env = "DIFY_API_KEY_ALLOCATION"
-        # Future agents can be added here
+        agent_key_map = {
+            "allocation": "DIFY_API_KEY_ALLOCATION",
+            "booking": "DIFY_API_KEY_BOOKING",
+            "analytics": "DIFY_API_KEY_ANALYTICS",
+            "config": "DIFY_API_KEY_CONFIG"
+        }
+        selected_key_env = agent_key_map.get(agent_id)
 
     api_key = None
     if selected_key_env:
         api_key = os.getenv(selected_key_env)
         if not api_key:
             logger.warning(f"Env {selected_key_env} not set; falling back to default DIFY_API_KEY")
+        else:
+            logger.info(f"Using API key from {selected_key_env} for agent_id={agent_id}")
 
     if not api_key:
         api_key = os.getenv("DIFY_API_KEY")
+        logger.info(f"Using default DIFY_API_KEY for agent_id={agent_id}")
     if not api_key:
         api_key = "app-juJAFQ9a8QAghx5tACyTvqqG"
         logger.warning("DIFY_API_KEY not set; using legacy fallback key (please set env variable)")
+
+    # Log the API key being used (masked for security)
+    logger.info(f"Final API key for agent_id={agent_id}: {api_key[:15]}...")
 
     return {
         "Authorization": f"Bearer {api_key}",
@@ -191,7 +217,7 @@ def get_dify_api_url(agent_id: Optional[str] = None) -> str:
         base = base[:-1]
     return f"{base}/chat-messages"
 
-async def stream_from_dify(dify_payload: Dict[str, Any], agent_id: Optional[str] = None) -> StreamingResponse:
+async def stream_from_dify(dify_payload: Dict[str, Any], agent_id: Optional[str] = None, api_key_override: Optional[str] = None) -> StreamingResponse:
     """Stream response from Dify API with graceful httpx fallback."""
     DIFY_API_URL = get_dify_api_url(agent_id)
 
@@ -203,7 +229,7 @@ async def stream_from_dify(dify_payload: Dict[str, Any], agent_id: Optional[str]
                         "POST",
                         DIFY_API_URL,
                         json=dify_payload,
-                        headers=get_dify_headers(agent_id)
+                        headers=get_dify_headers(agent_id, api_key_override)
                     ) as response:
                         if response.status_code != 200:
                             error_text = await response.aread()
@@ -219,7 +245,7 @@ async def stream_from_dify(dify_payload: Dict[str, Any], agent_id: Optional[str]
                         with requests.post(
                             DIFY_API_URL,
                             json=dify_payload,
-                            headers=get_dify_headers(agent_id),
+                            headers=get_dify_headers(agent_id, api_key_override),
                             stream=True,
                             timeout=300
                         ) as response:
@@ -576,8 +602,9 @@ async def universal_prompt_processor(request: FlexiblePromptRequest):
                 "user": f"unified_backend_{int(time.time())}"
             }
             agent = getattr(request, "agent_id", None)
+            agent_api_key = getattr(request, "agent_api_key", None)
             logger.info(f"Routing to Dify (MCP-first) agent_id={agent} url={get_dify_api_url(agent)}")
-            return await stream_from_dify(dify_payload, agent)
+            return await stream_from_dify(dify_payload, agent, agent_api_key)
 
         # Legacy SMART_BACKEND path (fallback/testing)
         # Step 1: Intelligent Prompt Analysis
