@@ -84,7 +84,9 @@ class PromptIntelligenceEngine:
             PromptIntent.HEDGE_UTILIZATION: [
                 r'(?i)(check|can I|available|capacity|utilize|hedge today)',
                 r'(?i)(utilization|utilisation|available.*hedge|hedge.*capacity)',
-                r'(?i)(150k|[0-9]+[km]?)\s+(?:cny|usd|eur|gbp|jpy)\s+(?:today|now)'
+                r'(?i)(execute.*utilization|process.*utilization|run.*utilization)',
+                r'(?i)(utilization.*check|hedge.*utilization|allocation.*check)',
+                r'(?i)(150k|[0-9]+[km]?)\s+(?:cny|usd|eur|gbp|jpy|twd|aud|hkd)\s+(?:today|now|check|utilization)'
             ],
             PromptIntent.HEDGE_INCEPTION: [
                 r'(?i)(start|create|initiate|begin|new).*hedge',
@@ -203,8 +205,8 @@ class PromptIntelligenceEngine:
         self.table_mappings = {
             # Hedge Instructions - targeted data based on instruction type
             PromptIntent.HEDGE_UTILIZATION: [
-                "entity_master", "position_nav_master", "allocation_engine", 
-                "currency_configuration", "threshold_configuration", "buffer_configuration"
+                "entity_master", "position_nav_master", "allocation_engine",
+                "currency_configuration", "threshold_configuration", "buffer_configuration", "currency_rates"
             ],
             PromptIntent.HEDGE_INCEPTION: [
                 "entity_master", "position_nav_master", "hedge_instruments",

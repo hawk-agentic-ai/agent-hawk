@@ -7,7 +7,7 @@ This guide provides comprehensive troubleshooting steps for common deployment is
 ## 🏗️ System Architecture Quick Reference
 
 ```
-Production Environment: 13.222.100.183
+Production Environment: 3.238.163.106
 ├── Nginx (Port 80/443) → SSL Termination
 ├── Angular App (Port 8000) → 4 worker processes
 ├── Smart Backend (Port 8004) → Core API services
@@ -22,19 +22,19 @@ Production Environment: 13.222.100.183
 #### **Issue**: Services not responding on expected ports
 ```bash
 # Symptom
-curl: (7) Failed to connect to 13.222.100.183 port 8009: Connection refused
+curl: (7) Failed to connect to 3.238.163.106 port 8009: Connection refused
 ```
 
 **Diagnosis Steps:**
 ```bash
 # Check service status
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 status"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "pm2 status"
 
 # Check port bindings
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "netstat -tulpn | grep :800"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "netstat -tulpn | grep :800"
 
 # Check process list
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "ps aux | grep python"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "ps aux | grep python"
 ```
 
 **Solutions:**
@@ -62,14 +62,14 @@ curl: (60) SSL certificate problem: certificate has expired
 **Solution:**
 ```bash
 # Check certificate status
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "sudo certbot certificates"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "sudo certbot certificates"
 
 # Renew certificates
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "sudo certbot renew --dry-run"
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "sudo certbot renew"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "sudo certbot renew --dry-run"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "sudo certbot renew"
 
 # Reload nginx
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "sudo systemctl reload nginx"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "sudo systemctl reload nginx"
 ```
 
 ### 2. Database Connection Issues
@@ -97,17 +97,17 @@ print('Database connection:', client.table('hedge_funds').select('count').execut
 **Solutions:**
 ```bash
 # Check environment variables
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "env | grep SUPABASE"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "env | grep SUPABASE"
 
 # Update environment variables
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "
 export SUPABASE_URL='https://ladviaautlfvpxuadqrb.supabase.co'
 export SUPABASE_SERVICE_ROLE_KEY='your-service-key'
 pm2 restart all
 "
 
 # Test connection from production
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "
 cd /home/ubuntu/hedge-agent/production/backend/
 python3 -c 'from shared.data_extractor import test_supabase_connection; test_supabase_connection()'
 "
@@ -125,27 +125,27 @@ git status shows different files between environments
 ```bash
 # Check git status on both environments
 git status
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "cd /home/ubuntu/hedge-agent && git status"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "cd /home/ubuntu/hedge-agent && git status"
 
 # Compare file checksums
 md5sum unified_smart_backend.py
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "cd /home/ubuntu/hedge-agent/production/backend && md5sum unified_smart_backend.py"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "cd /home/ubuntu/hedge-agent/production/backend && md5sum unified_smart_backend.py"
 ```
 
 **Solutions:**
 ```bash
 # Method 1: Pull from cloud to local
-scp -i agent_tmp.pem ubuntu@13.222.100.183:/home/ubuntu/hedge-agent/production/backend/unified_smart_backend.py ./
+scp -i agent_tmp.pem ubuntu@3.238.163.106:/home/ubuntu/hedge-agent/production/backend/unified_smart_backend.py ./
 
 # Method 2: Push from local to cloud
-scp -i agent_tmp.pem ./unified_smart_backend.py ubuntu@13.222.100.183:/home/ubuntu/hedge-agent/production/backend/
+scp -i agent_tmp.pem ./unified_smart_backend.py ubuntu@3.238.163.106:/home/ubuntu/hedge-agent/production/backend/
 
 # Method 3: Force sync via Git
 git add .
 git commit -m "Sync local changes"
 git push origin main
 
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "
 cd /home/ubuntu/hedge-agent
 git pull origin main
 pm2 restart all
@@ -163,16 +163,16 @@ Response times > 5 seconds, out of memory errors
 **Diagnosis:**
 ```bash
 # Check memory usage
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "free -h"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "free -h"
 
 # Check disk usage
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "df -h"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "df -h"
 
 # Monitor process memory
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "top -p \$(pgrep -f python)"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "top -p \$(pgrep -f python)"
 
 # Check PM2 memory usage
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 monit"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "pm2 monit"
 ```
 
 **Solutions:**
@@ -198,7 +198,7 @@ pm2 start mcp_server_production.py --max-memory-restart 500M
 #### **Issue**: CORS errors blocking frontend requests
 ```javascript
 // Symptom
-Access to fetch at 'https://13-222-100-183.nip.io:8009/' from origin 'https://cloud.dify.ai'
+Access to fetch at 'https://3-238-163-106.nip.io:8009/' from origin 'https://cloud.dify.ai'
 has been blocked by CORS policy
 ```
 
@@ -209,7 +209,7 @@ has been blocked by CORS policy
 
 ALLOWED_ORIGINS = [
     "https://cloud.dify.ai",
-    "https://13-222-100-183.nip.io",
+    "https://3-238-163-106.nip.io",
     "http://localhost:4200",
     "http://localhost:3000"
 ]
@@ -225,7 +225,7 @@ app.add_middleware(
 
 ```bash
 # Update and restart services
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "
 cd /home/ubuntu/hedge-agent/production/backend
 # Edit CORS settings
 pm2 restart all
@@ -276,12 +276,12 @@ git push origin main
 ### Health Checks
 ```bash
 # Complete system health check
-curl -f https://13-222-100-183.nip.io/api/health || echo "Main API DOWN"
-curl -f https://13-222-100-183.nip.io:8009/ || echo "MCP Server DOWN"
-curl -f https://13-222-100-183.nip.io:8010/ || echo "Allocation Server DOWN"
+curl -f https://3-238-163-106.nip.io/api/health || echo "Main API DOWN"
+curl -f https://3-238-163-106.nip.io:8009/ || echo "MCP Server DOWN"
+curl -f https://3-238-163-106.nip.io:8010/ || echo "Allocation Server DOWN"
 
 # Service status check
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 status | grep -E '(online|stopped|errored)'"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "pm2 status | grep -E '(online|stopped|errored)'"
 ```
 
 ### Quick Deployment
@@ -289,19 +289,19 @@ ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 status | grep -E '(online|stoppe
 # Full deployment pipeline
 git add . && git commit -m "Deploy: $(date)" && git push origin main
 
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "
 cd /home/ubuntu/hedge-agent &&
 git pull origin main &&
 pm2 restart all &&
 sleep 5 &&
-curl -f https://13-222-100-183.nip.io/api/health
+curl -f https://3-238-163-106.nip.io/api/health
 "
 ```
 
 ### Emergency Recovery
 ```bash
 # If all services are down
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "
 pm2 kill
 pm2 start /home/ubuntu/hedge-agent/production/backend/unified_smart_backend.py --name unified_smart_backend
 pm2 start /home/ubuntu/hedge-agent/production/backend/mcp_server_production.py --name mcp_server_production
@@ -316,26 +316,26 @@ sudo systemctl restart nginx
 ### Log Monitoring
 ```bash
 # Real-time log monitoring
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 logs --lines 20 --raw | grep -E '(ERROR|WARN|Exception)'"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "pm2 logs --lines 20 --raw | grep -E '(ERROR|WARN|Exception)'"
 
 # Nginx error logs
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "sudo tail -f /var/log/nginx/error.log"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "sudo tail -f /var/log/nginx/error.log"
 
 # System logs
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "sudo journalctl -u nginx -f"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "sudo journalctl -u nginx -f"
 ```
 
 ### Performance Monitoring
 ```bash
 # CPU and Memory usage
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "
 echo 'CPU Usage:' && top -bn1 | grep 'Cpu(s)' &&
 echo 'Memory Usage:' && free -h &&
 echo 'Disk Usage:' && df -h /
 "
 
 # Process monitoring
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "ps aux | grep python | grep -v grep"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "ps aux | grep python | grep -v grep"
 ```
 
 ## 🛠️ Debugging Tools
@@ -361,18 +361,18 @@ except Exception as e:
 ### Network Debugging
 ```bash
 # Test specific ports
-telnet 13.222.100.183 8009
+telnet 3.238.163.106 8009
 
 # Check SSL certificate
-openssl s_client -connect 13-222-100-183.nip.io:443 -servername 13-222-100-183.nip.io
+openssl s_client -connect 3-238-163-106.nip.io:443 -servername 3-238-163-106.nip.io
 
 # DNS resolution
-nslookup 13-222-100-183.nip.io
-dig 13-222-100-183.nip.io
+nslookup 3-238-163-106.nip.io
+dig 3-238-163-106.nip.io
 
 # Network connectivity
-ping 13.222.100.183
-traceroute 13.222.100.183
+ping 3.238.163.106
+traceroute 3.238.163.106
 ```
 
 ### Database Debugging

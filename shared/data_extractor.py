@@ -59,16 +59,22 @@ class SmartDataExtractor:
         self.cache_misses = 0
         self.total_extraction_time = 0
         
-    async def extract_data_for_prompt(self, 
+    async def extract_data_for_prompt(self,
                                     analysis_result: PromptAnalysisResult,
-                                    use_cache: bool = True) -> Dict[str, Any]:
+                                    use_cache: bool = True,
+                                    currency: Optional[str] = None,
+                                    entity_id: Optional[str] = None,
+                                    nav_type: Optional[str] = None,
+                                    amount: Optional[float] = None) -> Dict[str, Any]:
         """
         Main data extraction method - intelligently fetches data based on prompt analysis
         """
         start_time = time.time()
         
-        # Build extraction parameters
-        extraction_params = self._build_extraction_params(analysis_result)
+        # Build extraction parameters with currency filtering
+        extraction_params = self._build_extraction_params(
+            analysis_result, currency, entity_id, nav_type, amount
+        )
         
         # Determine extraction strategy
         if analysis_result.data_scope == "minimal":
@@ -99,7 +105,11 @@ class SmartDataExtractor:
         
         return extracted_data
     
-    def _build_extraction_params(self, analysis_result: PromptAnalysisResult) -> Dict[str, Any]:
+    def _build_extraction_params(self, analysis_result: PromptAnalysisResult,
+                                currency: Optional[str] = None,
+                                entity_id: Optional[str] = None,
+                                nav_type: Optional[str] = None,
+                                amount: Optional[float] = None) -> Dict[str, Any]:
         """Build extraction parameters from analysis result"""
         params = analysis_result.extracted_params.copy()
         
@@ -110,6 +120,16 @@ class SmartDataExtractor:
             "instruction_type": analysis_result.instruction_type,
             "data_scope": analysis_result.data_scope
         })
+
+        # Add explicit filtering parameters (overrides any from extracted_params)
+        if currency:
+            params["currency"] = currency
+        if entity_id:
+            params["entity_id"] = entity_id
+        if nav_type:
+            params["nav_type"] = nav_type
+        if amount:
+            params["amount"] = amount
         
         return params
     
@@ -232,7 +252,7 @@ class SmartDataExtractor:
                         "table": table
                     }
             except Exception as e:
-                print(f"Cache read error for {table}: {e}")
+                logger.warning(f"Cache read error for {table}: {e}")
         
         # Cache miss - build smart query
         query = self._build_smart_query(table, params, comprehensive, limit)
@@ -254,7 +274,7 @@ class SmartDataExtractor:
                         # Store directly in memory cache (no expiration for simplicity)
                         self.memory_cache[cache_key] = data
                 except Exception as e:
-                    print(f"Cache write error for {table}: {e}")
+                    logger.warning(f"Cache write error for {table}: {e}")
             
             self.cache_misses += 1
             
@@ -265,7 +285,7 @@ class SmartDataExtractor:
             }
             
         except Exception as e:
-            print(f"Database query error for {table}: {e}")
+            logger.error(f"Database query error for {table}: {e}")
             return {
                 "data": [],
                 "cache_hit": False,
@@ -287,9 +307,9 @@ class SmartDataExtractor:
         instruction_type = params.get("instruction_type")
         order_id = params.get("order_id")
 
-        # DEBUG: Log filtering parameters
-        print(f"DEBUG: _build_smart_query table={table}, currency={currency}, params={params}")
-        
+        # Log filtering parameters for debugging
+        logger.debug(f"Building smart query: table={table}, currency={currency}, entity={entity_id}, params={params}")
+
         # Currency-based filtering
         if currency and table in [
             "entity_master", "position_nav_master", "hedge_instructions",
@@ -486,5 +506,5 @@ class SmartDataExtractor:
                 return len(keys)
             return 0
         except Exception as e:
-            print(f"Cache clear error: {e}")
+            logger.warning(f"Cache clear error: {e}")
             return 0

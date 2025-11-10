@@ -100,10 +100,15 @@ async def initialize_connections():
         # Initialize Redis (optional, non-blocking)
         try:
             redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
-            # Don't block on ping during startup
-            logger.info("Redis client created")
+
+            # Test connection with ping
+            redis_client.ping()
+            logger.info("✅ Redis client connected and healthy")
+        except redis.ConnectionError as e:
+            logger.warning(f"Redis connection failed: {e}. Caching will be disabled.")
+            redis_client = None
         except Exception as e:
-            logger.warning(f"Redis not available: {e}")
+            logger.warning(f"Redis not available: {e}. Caching will be disabled.")
             redis_client = None
 
         return True
@@ -783,6 +788,13 @@ async def get_dify_agent_tools():
     Provides the tool manifest for Dify Agent integration.
     This endpoint describes the capabilities of the HAWK Stage 1A server.
     """
+    # Get base URL from environment or construct from request
+    base_url = PUBLIC_BASE_URL or "https://3-91-170-95.nip.io/dify"
+    if not base_url:
+        # Fallback to default if not configured
+        base_url = "https://3-91-170-95.nip.io/dify"
+        logger.warning(f"PUBLIC_BASE_URL not set, using default: {base_url}")
+
     tools = {
         "tools": [
             {
@@ -808,7 +820,7 @@ async def get_dify_agent_tools():
                     "required": ["instruction"]
                 },
                 "endpoint": {
-                    "url": "https://3-91-170-95.nip.io/dify",
+                    "url": base_url,
                     "method": "POST",
                     "payload": {
                         "jsonrpc": "2.0",
@@ -836,7 +848,7 @@ async def get_dify_agent_tools():
                     "required": []
                 },
                 "endpoint": {
-                    "url": "https://3-91-170-95.nip.io/dify",
+                    "url": base_url,
                     "method": "POST",
                     "payload": {
                         "jsonrpc": "2.0",
@@ -870,7 +882,7 @@ async def get_dify_agent_tools():
                     "required": ["view_name"]
                 },
                 "endpoint": {
-                    "url": "https://3-91-170-95.nip.io/dify",
+                    "url": base_url,
                     "method": "POST",
                     "payload": {
                         "jsonrpc": "2.0",
@@ -909,8 +921,12 @@ async def options_root():
 @app.get("/.well-known/mcp")
 async def mcp_discovery(request: Request):
     """MCP server discovery endpoint"""
-    # Always return the correct HTTPS URL for Dify discovery
+    # Get public base URL from environment
     def get_public_base_url() -> str:
+        if PUBLIC_BASE_URL:
+            return PUBLIC_BASE_URL
+        # Fallback to default for backward compatibility
+        logger.warning("PUBLIC_BASE_URL not set, using default URL")
         return "https://3-91-170-95.nip.io/dify"
 
     return {
@@ -1067,8 +1083,12 @@ async def sse_endpoint(request: Request):
     """
 
     def build_public_base_url() -> str:
-        # Always return the correct HTTPS URL for Dify
+        # Get public base URL from environment
         # This is the URL that Dify needs to be able to connect to
+        if PUBLIC_BASE_URL:
+            return PUBLIC_BASE_URL
+        # Fallback to default for backward compatibility
+        logger.warning("PUBLIC_BASE_URL not set for SSE endpoint, using default URL")
         return "https://3-91-170-95.nip.io/dify"
 
     # Handle HEAD requests
@@ -1089,6 +1109,8 @@ async def sse_endpoint(request: Request):
 
     async def event_stream():
         public_base = build_public_base_url()
+
+        logger.info(f"SSE endpoint streaming public base URL: {public_base}")
 
         # Dify expects SSE event named "endpoint" with the MCP JSON-RPC URL
         yield f"event: endpoint\n"

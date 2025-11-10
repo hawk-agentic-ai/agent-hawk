@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 
 import uvicorn
-from fastapi import FastAPI, Request, Response, Header, HTTPException
+from fastapi import FastAPI, Request, Response, Header, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 import os
@@ -349,6 +349,101 @@ def _tools_list_result(req_id: Any):
                         },
                         "required": ["agent_type", "processing_result"]
                     }
+                },
+                # =============================================================================
+                # AGENT-SPECIFIC BRIDGE TOOLS
+                # =============================================================================
+                {
+                    "name": "allocation_stage1a_processor",
+                    "description": "Allocation Agent Stage 1A: Capacity assessment and utilization validation with buffer application",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "user_prompt": {"type": "string"},
+                            "currency": {"type": "string"},
+                            "entity_id": {"type": "string"},
+                            "nav_type": {"type": "string"},
+                            "amount": {"type": "number"},
+                            "write_data": {"type": "object", "description": "Allocation engine write data"}
+                        },
+                        "required": ["user_prompt", "currency", "entity_id", "amount"]
+                    }
+                },
+                {
+                    "name": "allocation_utilization_checker",
+                    "description": "Check available hedging capacity and utilization for allocation decisions",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "currency": {"type": "string"},
+                            "entity_id": {"type": "string"},
+                            "nav_type": {"type": "string"},
+                            "amount": {"type": "number"}
+                        },
+                        "required": ["currency", "entity_id", "amount"]
+                    }
+                },
+                {
+                    "name": "hedge_booking_processor",
+                    "description": "Booking Agent Stage 2: Execute hedge deal booking in Murex with validation",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "user_prompt": {"type": "string"},
+                            "instruction_id": {"type": "string"},
+                            "currency": {"type": "string"},
+                            "entity_id": {"type": "string"},
+                            "amount": {"type": "number"},
+                            "execute_booking": {"type": "boolean", "default": True},
+                            "write_data": {"type": "object", "description": "Booking data"}
+                        },
+                        "required": ["instruction_id", "currency", "amount"]
+                    }
+                },
+                {
+                    "name": "gl_posting_processor",
+                    "description": "Booking Agent Stage 3: Create and post balanced GL journal entries",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "user_prompt": {"type": "string"},
+                            "instruction_id": {"type": "string"},
+                            "currency": {"type": "string"},
+                            "amount": {"type": "number"},
+                            "execute_posting": {"type": "boolean", "default": True},
+                            "write_data": {"type": "object", "description": "GL posting data"}
+                        },
+                        "required": ["instruction_id", "currency", "amount"]
+                    }
+                },
+                {
+                    "name": "analytics_processor",
+                    "description": "Analytics Agent: Generate performance analysis, risk metrics, and hedge effectiveness reports",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "user_prompt": {"type": "string"},
+                            "currency": {"type": "string"},
+                            "entity_id": {"type": "string"},
+                            "time_period": {"type": "string", "default": "current"}
+                        },
+                        "required": ["user_prompt"]
+                    }
+                },
+                {
+                    "name": "config_crud_processor",
+                    "description": "Config Agent: CRUD operations on configuration tables (entity_master, thresholds, etc.)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "table_name": {"type": "string"},
+                            "operation": {"type": "string", "enum": ["select", "insert", "update", "delete"], "default": "select"},
+                            "data": {"type": "object", "description": "Data for insert/update operations"},
+                            "filters": {"type": "object", "description": "WHERE clause filters"},
+                            "limit": {"type": "integer", "default": 100}
+                        },
+                        "required": ["table_name"]
+                    }
                 }
             ]
         }
@@ -490,10 +585,51 @@ async def mcp_endpoint(request: Request, authorization: Optional[str] = Header(d
                         instruction_id=arguments.get("instruction_id"),
                         include_verification=arguments.get("include_verification", True)
                     )
+
+                # =============================================================================
+                # AGENT-SPECIFIC BRIDGE TOOLS
+                # =============================================================================
+                elif tool_name in ["allocation_stage1a_processor", "allocation_utilization_checker",
+                                 "hedge_booking_processor", "gl_posting_processor", "murex_integration_processor",
+                                 "analytics_processor", "performance_analyzer", "risk_calculator",
+                                 "config_crud_processor", "entity_manager", "threshold_manager"]:
+
+                    # Route to MCP bridge
+                    from shared.mcp_tool_bridges import get_mcp_bridge
+
+                    mcp_bridge = get_mcp_bridge()
+                    if not mcp_bridge:
+                        return _jsonrpc_error(req_id, HawkErrorCodes.INTERNAL_ERROR,
+                                            "MCP bridge not initialized",
+                                            "Bridge tools require MCP bridge to be initialized")
+
+                    result = await mcp_bridge.execute_tool(tool_name, arguments)
+
+                    # Add bridge metadata
+                    if isinstance(result, dict):
+                        result["bridge_metadata"] = {
+                            "bridge_tool": tool_name,
+                            "routed_to_backend": True,
+                            "timestamp": datetime.now().isoformat()
+                        }
+
                 else:
+                    # Enhanced available tools list including bridges
+                    available_tools = [
+                        "process_hedge_prompt", "query_supabase_data", "get_system_health", "manage_cache", "generate_agent_report",
+                        # Allocation Agent Tools
+                        "allocation_stage1a_processor", "allocation_utilization_checker",
+                        # Booking Agent Tools
+                        "hedge_booking_processor", "gl_posting_processor", "murex_integration_processor",
+                        # Analytics Agent Tools
+                        "analytics_processor", "performance_analyzer", "risk_calculator",
+                        # Config Agent Tools
+                        "config_crud_processor", "entity_manager", "threshold_manager"
+                    ]
+
                     return _jsonrpc_error(req_id, HawkErrorCodes.METHOD_NOT_FOUND,
                                         f"Tool not found: {tool_name}",
-                                        f"Available tools: process_hedge_prompt, query_supabase_data, get_system_health, manage_cache, generate_agent_report")
+                                        f"Available tools: {', '.join(available_tools)}")
 
                 # Enhanced success response with metadata
                 return {
@@ -559,6 +695,11 @@ async def root_options():
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
     })
+
+# Add /mcp endpoint for Dify compatibility
+@app.post("/mcp")
+async def mcp_dify_endpoint(request: Request, authorization: Optional[str] = Header(default=None)):
+    return await mcp_endpoint(request, authorization)
 
 if __name__ == "__main__":
     # Run using the current module's app to avoid import name mismatches

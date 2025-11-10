@@ -186,7 +186,7 @@ GET /api/analytics/portfolio
 
 ### Initialize Connection
 ```http
-POST http://13.222.100.183:8009/
+POST http://3.238.163.106:8009/
 Content-Type: application/json
 ```
 
@@ -378,7 +378,7 @@ Content-Type: application/json
 
 ### WebSocket Connection
 ```javascript
-const ws = new WebSocket('wss://13-222-100-183.nip.io/ws');
+const ws = new WebSocket('wss://3-238-163-106.nip.io/ws');
 
 // Subscribe to position updates
 ws.send(JSON.stringify({
@@ -475,15 +475,15 @@ X-RateLimit-Reset: 1695638400
 ### API Testing
 ```bash
 # Test health endpoint
-curl https://13-222-100-183.nip.io/api/health
+curl https://3-238-163-106.nip.io/api/health
 
 # Test MCP initialization
-curl -X POST https://13-222-100-183.nip.io:8009/ \
+curl -X POST https://3-238-163-106.nip.io:8009/ \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":"1","method":"initialize","params":{}}'
 
 # Test position creation
-curl -X POST https://13-222-100-183.nip.io/api/positions \
+curl -X POST https://3-238-163-106.nip.io/api/positions \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{"symbol":"AAPL","allocation":1000000}'
@@ -509,7 +509,7 @@ class HawkClient:
         return response.json()
 
 # Usage
-client = HawkClient("https://13-222-100-183.nip.io", "your_token")
+client = HawkClient("https://3-238-163-106.nip.io", "your_token")
 position = client.create_position("TSLA", 500000)
 ```
 
@@ -535,7 +535,7 @@ class HawkAPI {
 }
 
 // Usage
-const api = new HawkAPI('https://13-222-100-183.nip.io', 'your_token');
+const api = new HawkAPI('https://3-238-163-106.nip.io', 'your_token');
 const result = await api.processOperation({
   instruction_type: 'inception',
   user_prompt: 'Create new position',
@@ -548,13 +548,13 @@ const result = await api.processOperation({
 ### Health Check Endpoints
 ```bash
 # Service health
-curl https://13-222-100-183.nip.io/api/health
+curl https://3-238-163-106.nip.io/api/health
 
 # MCP server health
-curl https://13-222-100-183.nip.io:8009/
+curl https://3-238-163-106.nip.io:8009/
 
 # Allocation server health
-curl https://13-222-100-183.nip.io:8010/
+curl https://3-238-163-106.nip.io:8010/
 ```
 
 ### Performance Metrics

@@ -27,8 +27,8 @@ class ProcessingStage(str, Enum):
 
 class FlexiblePromptRequest(BaseModel):
     """Flexible request model for HAWK agent operations"""
-    instruction_type: InstructionType = Field(
-        ...,
+    instruction_type: Optional[InstructionType] = Field(
+        default=None,
         description="Type of hedge fund operation to perform"
     )
     user_prompt: str = Field(
@@ -55,6 +55,40 @@ class FlexiblePromptRequest(BaseModel):
         default=True,
         description="Whether to stream the response"
     )
+
+    # Frontend compatibility fields
+    template_category: Optional[str] = Field(
+        default=None,
+        description="Template category from frontend"
+    )
+    agent_id: Optional[str] = Field(
+        default=None,
+        description="HAWK agent identifier"
+    )
+    agent_api_key: Optional[str] = Field(
+        default=None,
+        description="Dify agent API key"
+    )
+    instruction_id: Optional[str] = Field(
+        default=None,
+        description="Instruction ID for tracking"
+    )
+    use_cache: Optional[bool] = Field(
+        default=True,
+        description="Whether to use caching"
+    )
+    force_fresh: Optional[bool] = Field(
+        default=False,
+        description="Force fresh data fetch"
+    )
+
+    # Additional dynamic fields for data extraction
+    currency: Optional[str] = None
+    entity_id: Optional[str] = None
+    nav_type: Optional[str] = None
+    amount: Optional[float] = None
+    time_period: Optional[str] = None
+    portfolio: Optional[str] = None
 
 
 class HedgeInstructionPayload(BaseModel):

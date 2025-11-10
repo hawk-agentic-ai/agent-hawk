@@ -19,7 +19,7 @@
 1. **Build**: `npm run build:prod` - Creates optimized Angular build
 2. **Package**: Creates `frontend-deployment.tar.gz` from `dist/hedge-accounting-sfx/`
 3. **Upload**: SCP to server `/tmp/`
-4. **Deploy**: Extracts to `/var/www/13-222-100-183.nip.io/`
+4. **Deploy**: Extracts to `/var/www/3-238-163-106.nip.io/`
 5. **Permissions**: Sets `www-data:www-data` ownership
 6. **Reload**: Reloads nginx to serve new files
 7. **Test**: Verifies deployment with health check
@@ -33,7 +33,7 @@
 6. **Test**: Health check on MCP endpoint
 
 ## Production Environment
-- **URL**: https://13-222-100-183.nip.io
+- **URL**: https://3-238-163-106.nip.io
 - **Server**: AWS EC2 Ubuntu 22.04
 - **SSL**: Let's Encrypt auto-renewing certificates
 - **Architecture**: nginx → Angular SPA + API proxies

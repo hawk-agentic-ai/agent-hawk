@@ -313,7 +313,14 @@
       "Bash(done)",
       "Read(//c/Users/vssvi/OneDrive/Pictures/Screenshots/**)",
       "Read(//c/Users/vssvi/OneDrive/Desktop/**)",
-      "Bash(npm run ng:*)"
+      "Bash(npm run ng:*)",
+      "Bash(Test-Path $PROFILE)",
+      "Bash(powershell.exe -Command \"Test-Path $PROFILE\")",
+      "Bash(powershell.exe -Command \"echo $PROFILE; if (Test-Path $PROFILE) { Get-Content $PROFILE }\")",
+      "Bash(powershell.exe -Command \"$profilePath = $PROFILE; Write-Host $profilePath; if (Test-Path $profilePath) { Get-Content $profilePath }\")",
+      "Bash(powershell.exe -Command \"Get-Content C:\\Users\\vssvi\\AppData\\Local\\Microsoft\\WindowsTerminal\\settings.json | Select-String -Pattern ''hedge_agent_env'' -Context 5\")",
+      "Bash(powershell.exe:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

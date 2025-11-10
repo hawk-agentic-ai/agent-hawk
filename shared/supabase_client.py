@@ -4,6 +4,17 @@ Extracted from unified_smart_backend.py to enable connection reuse.
 """
 
 import os
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    import os.path
+    # Get the absolute path to the .env file in the project root
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    load_dotenv(env_path)
+except ImportError:
+    pass
+
 try:
     import redis
     import redis.asyncio as aioredis
@@ -31,19 +42,39 @@ class DatabaseManager:
     async def initialize_connections(self) -> Tuple[Optional[Client], Optional[redis.Redis]]:
         """Initialize both Supabase and Redis connections"""
         try:
-            # Initialize Supabase client - Use service key for unrestricted database access
+            # Initialize Supabase client - Properly read from environment variables
             SUPABASE_URL = os.getenv("SUPABASE_URL")
-            # Try service role key first, fallback to anon key
-            SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+            SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+            SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+
+            # Use service role key if available, otherwise use anon key
+            SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY
+
+            logger.info(f"Reading from environment variables:")
+            logger.info(f"SUPABASE_URL: {SUPABASE_URL}")
+            logger.info(f"Service role key available: {bool(SUPABASE_SERVICE_ROLE_KEY)}")
+            logger.info(f"Anon key available: {bool(SUPABASE_ANON_KEY)}")
 
             if not SUPABASE_URL or not SUPABASE_KEY:
                 raise ValueError("SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY environment variables must be set")
 
-            using = "service_role" if os.getenv("SUPABASE_SERVICE_ROLE_KEY") else "anon"
+            using = "service_role" if SUPABASE_SERVICE_ROLE_KEY else "anon"
             logger.info(f"Initializing Supabase client using {using} key")
-            
+            logger.info(f"SUPABASE_KEY length: {len(SUPABASE_KEY) if SUPABASE_KEY else 0}")
+
+            # Validate URL format
+            if not SUPABASE_URL.startswith('https://') or '.supabase.co' not in SUPABASE_URL:
+                raise ValueError(f"Invalid Supabase URL format: {SUPABASE_URL}")
+
+            # Strip any whitespace that might cause issues
+            SUPABASE_URL = SUPABASE_URL.strip()
+            SUPABASE_KEY = SUPABASE_KEY.strip()
+
             self.supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
-            logger.info("Supabase client initialized")
+            logger.info("Supabase client initialized successfully")
+
+            # Test the connection with a simple query
+            await self._test_supabase_connection()
             
             # Initialize Redis with connection pooling
             if redis is None or aioredis is None:
@@ -123,6 +154,44 @@ class DatabaseManager:
                 logger.error(f"Error closing Redis connection pool: {e}")
 
         logger.info("Database connections cleanup complete")
+
+    async def _test_supabase_connection(self) -> None:
+        """Test Supabase connection with a simple query"""
+        try:
+            if not self.supabase_client:
+                raise ValueError("Supabase client not initialized")
+
+            # Try a simple query to test the connection
+            # Using a system table that should always exist
+            result = self.supabase_client.table("entity_master").select("count").limit(1).execute()
+
+            logger.info("✅ Supabase connection test successful")
+            logger.info(f"Connection validated - Response received")
+
+        except Exception as e:
+            logger.error(f"❌ Supabase connection test failed: {e}")
+            # Try alternative test with different table
+            try:
+                # Try with a potentially different table structure
+                result = self.supabase_client.from_("information_schema.tables").select("table_name").limit(1).execute()
+                logger.info("✅ Supabase connection test successful (alternative method)")
+            except Exception as e2:
+                logger.error(f"❌ Alternative connection test also failed: {e2}")
+                raise ConnectionError(f"Cannot establish connection to Supabase: {e}")
+
+    def test_connection_sync(self) -> bool:
+        """Synchronous connection test for debugging"""
+        try:
+            if not self.supabase_client:
+                return False
+
+            result = self.supabase_client.table("entity_master").select("count").limit(1).execute()
+            logger.info("✅ Synchronous Supabase connection test successful")
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ Synchronous connection test failed: {e}")
+            return False
 
 # Global instance for shared use
 db_manager = DatabaseManager()

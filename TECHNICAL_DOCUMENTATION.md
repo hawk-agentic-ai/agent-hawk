@@ -112,10 +112,10 @@ Redis:
 
 ### Infrastructure
 ```yaml
-AWS EC2: 13.222.100.183
+AWS EC2: 3.238.163.106
 ├── Nginx: Reverse proxy + SSL termination
 ├── Let's Encrypt: Auto-renewing certificates
-├── Domain: 13-222-100-183.nip.io
+├── Domain: 3-238-163-106.nip.io
 └── Services:
    ├── Port 8000: Main Angular app (4 workers)
    ├── Port 8004: Unified Smart Backend
@@ -167,7 +167,7 @@ Request → Cache Check (98% hit) → Quick Response (< 2s)
 
 ## ☁️ Current Cloud Status
 
-### **Server: 13.222.100.183**
+### **Server: 3.238.163.106**
 
 #### ✅ Running Services
 | Service | Port | Status | Description |
@@ -185,7 +185,7 @@ Cache Stats: 0 hits/0 misses (fresh deployment)
 Optimization Target: 98% cache hit rate
 Response Time: <2s average
 SSL Certificates: ✅ Valid (Let's Encrypt)
-Domain Access: ✅ https://13-222-100-183.nip.io
+Domain Access: ✅ https://3-238-163-106.nip.io
 ```
 
 #### 💾 Storage Usage
@@ -213,7 +213,7 @@ Domain Access: ✅ https://13-222-100-183.nip.io
 ./deploy.sh
 
 # 2. Manual deployment steps
-ssh -i agent_tmp.pem ubuntu@13.222.100.183
+ssh -i agent_tmp.pem ubuntu@3.238.163.106
 
 # Update code
 cd /home/ubuntu/hedge-agent/production/backend/
@@ -224,7 +224,7 @@ sudo systemctl restart nginx
 pm2 restart all
 
 # Verify deployment
-curl https://13-222-100-183.nip.io/api/health
+curl https://3-238-163-106.nip.io/api/health
 ```
 
 ### Environment Configuration
@@ -232,7 +232,7 @@ curl https://13-222-100-183.nip.io/api/health
 # Production environment variables
 SUPABASE_URL=https://ladviaautlfvpxuadqrb.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=[secure-key]
-CORS_ORIGINS=https://cloud.dify.ai,https://13-222-100-183.nip.io
+CORS_ORIGINS=https://cloud.dify.ai,https://3-238-163-106.nip.io
 DIFY_API_KEY_INCEPTION=[api-key]
 DIFY_API_KEY_ALLOCATION=[api-key]
 ```
@@ -276,7 +276,7 @@ git commit -m "Update: description of changes"
 git push origin main
 
 # 2. Pull on cloud server
-ssh -i agent_tmp.pem ubuntu@13.222.100.183
+ssh -i agent_tmp.pem ubuntu@3.238.163.106
 cd /home/ubuntu/hedge-agent/production/backend/
 git pull origin main
 
@@ -288,23 +288,23 @@ pm2 restart mcp_server_production
 ### Method 3: Direct File Transfer
 ```bash
 # Transfer specific files
-scp -i agent_tmp.pem ./unified_smart_backend.py ubuntu@13.222.100.183:/home/ubuntu/hedge-agent/production/backend/
+scp -i agent_tmp.pem ./unified_smart_backend.py ubuntu@3.238.163.106:/home/ubuntu/hedge-agent/production/backend/
 
 # Transfer entire directory
-rsync -avz -e "ssh -i agent_tmp.pem" ./shared/ ubuntu@13.222.100.183:/home/ubuntu/hedge-agent/production/shared/
+rsync -avz -e "ssh -i agent_tmp.pem" ./shared/ ubuntu@3.238.163.106:/home/ubuntu/hedge-agent/production/shared/
 ```
 
 ### Verification Steps
 ```bash
 # 1. Check file synchronization
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "cd /home/ubuntu/hedge-agent && git status"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "cd /home/ubuntu/hedge-agent && git status"
 
 # 2. Verify service health
-curl https://13-222-100-183.nip.io/api/health
+curl https://3-238-163-106.nip.io/api/health
 
 # 3. Test MCP endpoints
-curl https://13-222-100-183.nip.io/mcp/
-curl https://13-222-100-183.nip.io/dify/
+curl https://3-238-163-106.nip.io/mcp/
+curl https://3-238-163-106.nip.io/dify/
 ```
 
 ---
@@ -406,16 +406,16 @@ chore: Maintenance tasks
 ### Quick Commands
 ```bash
 # Health check
-curl https://13-222-100-183.nip.io/api/health
+curl https://3-238-163-106.nip.io/api/health
 
 # Service status
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 status"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "pm2 status"
 
 # View logs
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 logs --lines 50"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "pm2 logs --lines 50"
 
 # Restart all services
-ssh -i agent_tmp.pem ubuntu@13.222.100.183 "pm2 restart all"
+ssh -i agent_tmp.pem ubuntu@3.238.163.106 "pm2 restart all"
 ```
 
 ### Emergency Contacts

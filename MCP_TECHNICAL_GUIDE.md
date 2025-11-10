@@ -182,7 +182,7 @@ ALLOCATION_HOST=0.0.0.0
 ALLOCATION_PORT=8010
 
 # Security Settings
-CORS_ORIGINS=https://cloud.dify.ai,https://13-222-100-183.nip.io
+CORS_ORIGINS=https://cloud.dify.ai,https://3-238-163-106.nip.io
 AUTH_REQUIRED=true
 ```
 
@@ -191,7 +191,7 @@ AUTH_REQUIRED=true
 # Secure CORS setup
 ALLOWED_ORIGINS = [
     "https://cloud.dify.ai",
-    "https://13-222-100-183.nip.io",
+    "https://3-238-163-106.nip.io",
     "http://localhost:4200"  # Development
 ]
 
@@ -266,10 +266,10 @@ curl -X POST http://localhost:8009/ \
 ### Health Checks
 ```bash
 # MCP Server Health
-curl https://13-222-100-183.nip.io/mcp/
+curl https://3-238-163-106.nip.io/mcp/
 
 # Allocation Server Health
-curl https://13-222-100-183.nip.io/dify/
+curl https://3-238-163-106.nip.io/dify/
 ```
 
 ### Debugging
@@ -293,7 +293,7 @@ logger.info(f"Execution time: {execution_time:.2f}s")
 ### Production Deployment
 ```bash
 # Deploy via SSH
-ssh -i agent_tmp.pem ubuntu@13.222.100.183
+ssh -i agent_tmp.pem ubuntu@3.238.163.106
 
 # Navigate to production directory
 cd /home/ubuntu/hedge-agent/production/backend/
