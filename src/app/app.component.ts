@@ -19,9 +19,10 @@ import { LayoutService } from './core/services/layout.service';
     HeaderComponent
   ],
   template: `
-    <div class="flex h-screen bg-gray-50">
+    <div class="flex h-screen bg-background text-foreground font-sans">
       <!-- Main Sidebar -->
       <app-main-sidebar 
+        *ngIf="!layoutService.isAgentMode()"
         [isCollapsed]="layoutService.isMainSidebarCollapsed()"
         (toggleCollapse)="layoutService.toggleMainSidebar()"
         (menuItemClick)="onMainMenuClick($event)"
@@ -30,7 +31,7 @@ import { LayoutService } from './core/services/layout.service';
 
       <!-- Sub Sidebar -->
       <app-sub-sidebar 
-        *ngIf="layoutService.isSubSidebarVisible()"
+        *ngIf="!layoutService.isAgentMode() && layoutService.isSubSidebarVisible()"
         [isCollapsed]="layoutService.isSubSidebarCollapsed()"
         [isMainSidebarCollapsed]="layoutService.isMainSidebarCollapsed()"
         [menuItems]="currentSubMenuItems"
@@ -41,18 +42,25 @@ import { LayoutService } from './core/services/layout.service';
       </app-sub-sidebar>
 
       <!-- Main Content Area -->
-      <div class="flex flex-col flex-1 overflow-hidden" [style.margin-left]="getContentMarginLeft()">
+      <div class="flex flex-col flex-1 overflow-hidden transition-all duration-300 relative" [style.margin-left]="getContentMarginLeft()">
         <!-- Header -->
         <app-header 
+          *ngIf="!layoutService.isAgentMode()"
           [title]="currentTitle"
           [subtitle]="currentSubtitle">
         </app-header>
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-auto bg-gray-50 p-6">
-          <div class="bg-white rounded-md min-h-full shadow-sm border border-gray-100 flex flex-col">
+        <main class="flex-1 overflow-auto bg-muted/20 relative" 
+              [class.p-6]="!layoutService.isAgentMode()"
+              [class.p-0]="layoutService.isAgentMode()">
+          <div class="rounded-lg min-h-full flex flex-col relative overflow-hidden"
+               [class.bg-card]="!layoutService.isAgentMode()"
+               [class.shadow-sm]="!layoutService.isAgentMode()"
+               [class.border]="!layoutService.isAgentMode()"
+               [class.border-border]="!layoutService.isAgentMode()">
             <!-- Inner padding for breathing space on all screens -->
-            <div class="flex-1 overflow-auto p-4">
+            <div class="flex-1 overflow-auto z-0" [class.p-4]="!layoutService.isAgentMode()">
               <router-outlet></router-outlet>
             </div>
           </div>
@@ -67,7 +75,7 @@ export class AppComponent implements OnInit {
   currentSubMenuItems: any[] = [];
   currentSubSidebarIcon: string = 'pi pi-cog';
 
-  constructor(public layoutService: LayoutService, private router: Router) {}
+  constructor(public layoutService: LayoutService, private router: Router) { }
 
   ngOnInit() {
     // Ensure sub-sidebar only shows on configuration routes
@@ -191,13 +199,14 @@ export class AppComponent implements OnInit {
   }
 
   getContentMarginLeft(): string {
-    const mainSidebarWidth = this.layoutService.isMainSidebarEffectivelyCollapsed() ? 64 : 290;
-    const subSidebarWidth = this.layoutService.isSubSidebarEffectivelyCollapsed() ? 64 : 240;
-    
-    if (this.layoutService.isSubSidebarVisible()) {
-      return `${mainSidebarWidth + subSidebarWidth}px`;
-    }
-    
-    return `${mainSidebarWidth}px`;
+    // Use stable state (not effective state) to prevents layout jumps on hover
+    const mainSidebarWidth = this.layoutService.isMainSidebarCollapsed() ? 80 : 280;
+
+    // Sub-sidebar should also only push content if it's pinned open
+    const subSidebarWidth = this.layoutService.isSubSidebarVisible()
+      ? (this.layoutService.isSubSidebarCollapsed() ? 80 : 240)
+      : 0;
+
+    return `${mainSidebarWidth + subSidebarWidth}px`;
   }
 }

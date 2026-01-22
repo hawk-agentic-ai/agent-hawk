@@ -64,7 +64,10 @@ import { HedgeBusinessEventsService, HedgeBusinessEvent } from '../../operations
                 <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                 <span class="text-xs text-blue-700">Streaming...</span>
               </div>
-              <button class="btn btn-primary" (click)="send()" [disabled]="streaming"><i class="pi pi-send"></i><span>Submit</span></button>
+              <button class="btn-primary" (click)="send()" [disabled]="streaming">
+                <i class="pi pi-send text-xs"></i>
+                <span>Submit</span>
+              </button>
             </div>
           </div>
         </ng-container>
@@ -78,10 +81,10 @@ import { HedgeBusinessEventsService, HedgeBusinessEvent } from '../../operations
 export class TemplatePreviewComponent implements OnChanges, OnInit {
   @Input() template: PromptTemplate | null = null;
   @Input() fields: string[] = [];
-  @Output() onSend = new EventEmitter<{ text: string; values: Record<string,string> }>();
+  @Output() onSend = new EventEmitter<{ text: string; values: Record<string, string> }>();
   @Input() responseText = '';
   @Input() streaming = false;
-  values: Record<string,string> = {};
+  values: Record<string, string> = {};
   filledPrompt = '';
   currencyOptions: string[] = [];
   entityOptions: { label: string; value: string }[] = [];
@@ -89,19 +92,19 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
   eventIdOptions: { label: string; value: string }[] = [];
   copied = false;
 
-  send(){
+  send() {
     const text = this.filledPrompt || (this.template?.prompt_text || '');
     this.onSend.emit({ text, values: this.values });
   }
-  getType(f: string){
-    const name = (f||'').toLowerCase();
+  getType(f: string) {
+    const name = (f || '').toLowerCase();
     if (name.includes('date')) return 'date';
     if (name.includes('amount') || name.includes('qty') || name.includes('quantity') || name.includes('rate')) return 'number';
     return 'text';
   }
-  getPlaceholder(f: string){
-    const name = (f||'').toLowerCase();
-    const flat = name.replace(/\s+/g,'_');
+  getPlaceholder(f: string) {
+    const name = (f || '').toLowerCase();
+    const flat = name.replace(/\s+/g, '_');
     if (name.includes('date')) return 'YYYY-MM-DD';
     if (name.includes('currency')) return 'e.g., USD';
     if (name.includes('amount') || name.includes('qty') || name.includes('quantity')) return 'e.g., 100000';
@@ -110,39 +113,39 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
     if (name.includes('entity')) return 'e.g., Entity A';
     return `Enter ${f}`;
   }
-  isSelect(f: string){
-    const name = (f||'').toLowerCase();
-    const flat = name.replace(/\s+/g,'_');
+  isSelect(f: string) {
+    const name = (f || '').toLowerCase();
+    const flat = name.replace(/\s+/g, '_');
     return name.includes('currency') ||
-           name === 'entity' ||
-           flat.includes('entity_id') ||
-           flat.includes('entity_code') ||
-           flat.includes('entity_name') ||
-           flat.includes('entity_type') ||
-           name.includes('entity_type') ||
-           flat.includes('event_id') ||
-           name.includes('event_id');
+      name === 'entity' ||
+      flat.includes('entity_id') ||
+      flat.includes('entity_code') ||
+      flat.includes('entity_name') ||
+      flat.includes('entity_type') ||
+      name.includes('entity_type') ||
+      flat.includes('event_id') ||
+      name.includes('event_id');
   }
-  getSelectOptions(f: string){
-    const name = (f||'').toLowerCase();
-    const flat = name.replace(/\s+/g,'_');
+  getSelectOptions(f: string) {
+    const name = (f || '').toLowerCase();
+    const flat = name.replace(/\s+/g, '_');
     if (name.includes('currency')) return this.currencyOptions;
     if (flat.includes('entity_type') || name.includes('entity_type')) return this.entityTypeOptions;
     if (name === 'entity' || flat.includes('entity_id') || flat.includes('entity_code') || flat.includes('entity_name')) return this.entityOptions;
     return [] as any;
   }
-  constructor(private currencySvc: CurrencyService, private entitySvc: EntityMasterService, private ptSvc: PromptTemplatesService, private cdr: ChangeDetectorRef, private hedgeEventsSvc: HedgeBusinessEventsService) {}
+  constructor(private currencySvc: CurrencyService, private entitySvc: EntityMasterService, private ptSvc: PromptTemplatesService, private cdr: ChangeDetectorRef, private hedgeEventsSvc: HedgeBusinessEventsService) { }
 
-  ngOnInit(){
+  ngOnInit() {
     // Load currency options
-    try { this.currencySvc.getCurrencyCodes().subscribe(list => this.currencyOptions = list || []); } catch {}
+    try { this.currencySvc.getCurrencyCodes().subscribe(list => this.currencyOptions = list || []); } catch { }
     // Load entity options
     try {
       this.entitySvc.entities$.subscribe((ents: EntityMaster[]) => {
-        const items = (ents||[]).map(e => ({ label: `${e.entity_name} (${e.legal_entity_code})`, value: e.legal_entity_code }));
+        const items = (ents || []).map(e => ({ label: `${e.entity_name} (${e.legal_entity_code})`, value: e.legal_entity_code }));
         this.entityOptions = items;
       });
-    } catch {}
+    } catch { }
     // Load entity type options (static list from entity configuration)
     this.entityTypeOptions = [
       { label: 'Branch', value: 'Branch' },
@@ -153,14 +156,14 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
     // Load event ID options
     this.loadEventIds();
   }
-  ngOnChanges(ch: SimpleChanges){
+  ngOnChanges(ch: SimpleChanges) {
     let needsRecompute = false;
 
     // Handle template changes
     if (ch['template']) {
       const prevTemplate = ch['template'].previousValue;
       const currTemplate = ch['template'].currentValue;
-      
+
       if (prevTemplate?.id !== currTemplate?.id) {
         console.log('Template changed from', prevTemplate?.name, 'to', currTemplate?.name);
         this.values = {};
@@ -173,10 +176,10 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
       const prevFields = ch['fields'].previousValue || [];
       const currFields = ch['fields'].currentValue || [];
       const fieldsChanged = JSON.stringify(prevFields) !== JSON.stringify(currFields);
-      
+
       if (fieldsChanged) {
         console.log('Fields changed from', prevFields, 'to', currFields);
-        
+
         // Initialize new fields while preserving existing values
         const newValues = { ...this.values };
         currFields.forEach((field: string) => {
@@ -184,14 +187,14 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
             newValues[field] = '';
           }
         });
-        
+
         // Remove values for fields that no longer exist
         Object.keys(newValues).forEach((key: string) => {
           if (!currFields.includes(key)) {
             delete newValues[key];
           }
         });
-        
+
         this.values = newValues;
         needsRecompute = true;
       }
@@ -201,37 +204,37 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
       this.computeFilled();
     }
   }
-  computeFilled(){
+  computeFilled() {
     const text = this.template?.prompt_text || '';
     const map = this.values || {};
-    
+
     if (!text) {
       this.filledPrompt = '';
       return;
     }
-    
+
     // Expand keys to multiple variants to maximize match success
-    const expanded: Record<string,string> = {};
+    const expanded: Record<string, string> = {};
     Object.keys(map).forEach((k: string) => {
       const v = map[k] ?? '';
       const raw = String(k);
       const trim = raw.trim();
       const lower = trim.toLowerCase();
-      const withUnderscore = trim.replace(/\s+/g,'_');
-      const withSpace = trim.replace(/_/g,' ');
-      const lowerUnderscore = lower.replace(/\s+/g,'_');
-      const lowerSpace = lower.replace(/_/g,' ');
+      const withUnderscore = trim.replace(/\s+/g, '_');
+      const withSpace = trim.replace(/_/g, ' ');
+      const lowerUnderscore = lower.replace(/\s+/g, '_');
+      const lowerSpace = lower.replace(/_/g, ' ');
       [raw, trim, lower, withUnderscore, withSpace, lowerUnderscore, lowerSpace].forEach((key: string) => { expanded[key] = v; });
     });
-    
+
     // Use the service's fillTemplate method
     this.filledPrompt = this.ptSvc.fillTemplate(text, expanded);
-    
+
     // Also try manual template filling as fallback
     if (!this.filledPrompt || this.filledPrompt === text) {
       this.filledPrompt = this.manualFillTemplate(text, expanded);
     }
-    
+
     // Debug logging
     console.log('Template filling:', {
       template: this.template?.name,
@@ -240,7 +243,7 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
       expanded: expanded,
       result: this.filledPrompt.substring(0, 100) + '...'
     });
-    
+
     // Trigger change detection to update the UI
     this.cdr.detectChanges();
   }
@@ -248,7 +251,7 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
   // Manual template filling as fallback
   private manualFillTemplate(text: string, values: Record<string, string>): string {
     let result = text;
-    
+
     // Replace {{key}} patterns
     Object.keys(values).forEach((key: string) => {
       const value = values[key] || '';
@@ -256,26 +259,26 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
         new RegExp(`\\{\\{\\s*${this.escapeRegex(key)}\\s*\\}\\}`, 'gi'),
         new RegExp(`\\[\\s*${this.escapeRegex(key)}\\s*\\]`, 'gi')
       ];
-      
+
       patterns.forEach((pattern: RegExp) => {
         result = result.replace(pattern, value);
       });
     });
-    
+
     return result;
   }
 
   private escapeRegex(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
-  escapeReg(s:string){ return s.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&'); }
+  escapeReg(s: string) { return s.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'); }
   // quick fill removed per request
 
   // copy button removed per request
 
   entityOptionValueFor(field: string, opt: { label: string; value: string }): string {
-    const name = (field||'').toLowerCase();
-    const flat = name.replace(/\s+/g,'_');
+    const name = (field || '').toLowerCase();
+    const flat = name.replace(/\s+/g, '_');
     if (flat.includes('entity_name')) return opt.label;
     if (flat.includes('entity_code') || flat.includes('entity_id')) return opt.value;
     // generic 'entity' defaults to label (human-friendly)
@@ -285,18 +288,18 @@ export class TemplatePreviewComponent implements OnChanges, OnInit {
 
   // Helper methods for template
   isCurrencyField(field: string): boolean {
-    return (field||'').toLowerCase().includes('currency');
+    return (field || '').toLowerCase().includes('currency');
   }
 
   isEntityTypeField(field: string): boolean {
-    const name = (field||'').toLowerCase();
-    const flat = name.replace(/\s+/g,'_');
+    const name = (field || '').toLowerCase();
+    const flat = name.replace(/\s+/g, '_');
     return flat.includes('entity_type') || name.includes('entity_type');
   }
 
   isEventIdField(field: string): boolean {
-    const name = (field||'').toLowerCase();
-    const flat = name.replace(/\s+/g,'_');
+    const name = (field || '').toLowerCase();
+    const flat = name.replace(/\s+/g, '_');
     return flat.includes('event_id') || name.includes('event_id');
   }
 

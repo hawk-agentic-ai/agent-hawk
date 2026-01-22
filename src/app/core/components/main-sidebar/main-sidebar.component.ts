@@ -9,91 +9,100 @@ import { LayoutService } from '../../services/layout.service';
   imports: [CommonModule, RouterModule],
   template: `
     <aside 
-      class="sidenav-root sidebar-transition z-20"
+      class="sidenav-root sidebar-transition z-20 glass-sidebar border-r border-sidebar-border fixed top-0 left-0 h-screen flex flex-col"
       [class.collapsed]="effectivelyCollapsed"
-      [style.width]="effectivelyCollapsed ? '64px' : '290px'"
+      [style.width]="effectivelyCollapsed ? '80px' : '280px'"
       (mouseenter)="onMouseEnter()"
-      (mouseleave)="onMouseLeave()"
-      style="background-color: #1e293b;">
+      (mouseleave)="onMouseLeave()">
       
       <!-- Brand Section -->
-      <div class="nav-header">
-        <div class="header-full" [class.justify-center]="effectivelyCollapsed">
-          <div class="logo-box flex items-center justify-center" style="width: 36px; height: 36px;">
-            <!-- Inline DBS Logomark (original) -->
-            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="DBS Logo">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M22.2047 11.9981V11.9963C22.2047 10.4209 22.2685 9.00862 23.4371 6.52802C23.7749 5.80636 24.5224 4.7549 23.4212 3.5279C22.5265 2.63602 21.5104 2.7823 20.8259 3.17682C21.2196 2.49239 21.3659 1.47196 20.4721 0.576538C19.2459 -0.521024 18.1908 0.224573 17.4726 0.564126C14.989 1.73527 13.5837 1.79999 12.0028 1.79999C10.4157 1.79999 9.00855 1.73527 6.53034 0.564126C5.80861 0.224573 4.74905 -0.521024 3.52635 0.576538C2.6326 1.47196 2.78333 2.49239 3.17701 3.17682C2.49074 2.78053 1.47286 2.63602 0.577332 3.5279C-0.523009 4.7549 0.22799 5.80636 0.559599 6.52802C1.73531 9.00862 1.80003 10.4209 1.80003 11.9981C1.80003 13.5797 1.73531 14.9956 0.559599 17.4744C0.22799 18.1907 -0.523009 19.2493 0.577332 20.4754C1.47286 21.3646 2.49074 21.2174 3.17701 20.8274C2.78333 21.5136 2.6326 22.5313 3.52635 23.4179C4.74905 24.5234 5.80861 23.7761 6.53034 23.4365C9.01032 22.2662 10.4157 22.2042 12.0028 22.2042C13.5837 22.2042 14.989 22.2662 17.4717 23.4365C18.1908 23.7761 19.2459 24.5234 20.4721 23.4179C21.3659 22.5313 21.216 21.5136 20.8241 20.8274C21.5104 21.2174 22.5265 21.3699 23.4212 20.4754C24.5224 19.2493 23.7749 18.1907 23.4371 17.4744C22.2685 14.992 22.2047 13.5797 22.2047 11.9981Z" fill="#FF3E3E"/>
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M19.4168 19.4405L13.6569 14.6103C13.6569 14.6103 12.8766 13.8485 12.0014 13.8485C11.1174 13.8485 10.3372 14.6103 10.3372 14.6103L4.579 19.4405L4.56055 19.4239L9.39167 13.6639C9.39167 13.6639 10.1518 12.8863 10.1518 12.0005C10.1518 11.1236 9.39167 10.3451 9.39167 10.3451L4.56055 4.58076L4.579 4.56055L10.3372 9.39606C10.3372 9.39606 11.1174 10.1597 12.0014 10.1597C12.8766 10.1597 13.6569 9.39606 13.6569 9.39606L19.4168 4.56055L19.4405 4.58603L14.5998 10.3451C14.5998 10.3451 13.8449 11.1236 13.8449 12.0005C13.8449 12.8863 14.5998 13.6639 14.5998 13.6639L19.4405 19.4221L19.4168 19.4405Z" fill="white"/>
-            </svg>
+      <div class="nav-header h-[72px] flex items-center px-5 border-b border-sidebar-border/30">
+        <div class="header-full flex items-center gap-4 w-full" [class.justify-center]="effectivelyCollapsed">
+          <div class="logo-box flex items-center justify-center shrink-0" style="width: 40px; height: 40px;">
+            <!-- Custom DBS Logomark -->
+            <img src="assets/Logo/DBS/Logomark.svg" alt="DBS Logo" class="w-8 h-8 object-contain">
           </div>
-          <div *ngIf="!effectivelyCollapsed" class="flex flex-col">
-            <span class="text-sm font-semibold text-white">DBS One Finance Platform</span>
+          <div *ngIf="!effectivelyCollapsed" class="flex flex-col min-w-0">
+            <span class="text-[15px] font-bold tracking-tight text-white leading-tight">DBS One <span class="font-normal opacity-70">Finance</span></span>
+            <span class="text-[10px] uppercase tracking-widest font-bold text-sidebar-primary mt-1">Corporate Treasury</span>
           </div>
-        </div>
-        
-        <div *ngIf="!effectivelyCollapsed" class="section-label" style="color: #e5e7eb !important;">
-          <span>Corporate Treasury</span>
         </div>
       </div>
 
       <!-- Navigation Menu -->
-      <nav class="menu">
+      <nav class="menu flex-1 overflow-y-auto scrollbar-hide p-4 space-y-2">
+        <label *ngIf="!effectivelyCollapsed" class="text-xs font-bold text-sidebar-foreground/40 uppercase tracking-wider px-3 mb-2 block">Main Menu</label>
+        
         <div class="menu-block">
           <!-- Main Menu Item -->
           <button 
-            class="menu-button" 
-            [class.active]="activeMenu === 'hedge-accounting'"
-            (click)="toggleGroup(); onMenuItemClick({key: 'hedge-accounting', label: 'Hedge Accounting SFX'})"
-            style="color: #e5e7eb !important;">
-            <div class="icon-text">
-              <i class="pi pi-chart-line" [class.mr-0]="effectivelyCollapsed"></i>
-              <span *ngIf="!effectivelyCollapsed">Hedge Accounting SFX</span>
+            class="menu-button w-full flex items-center px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden" 
+            [ngClass]="{
+              'bg-sidebar-primary/20 text-white shadow-lg shadow-sidebar-primary/5 ring-1 ring-sidebar-primary/20': activeMenu === 'hedge-accounting',
+              'text-sidebar-foreground hover:bg-white/5 hover:text-white': activeMenu !== 'hedge-accounting'
+            }"
+            (click)="toggleGroup(); onMenuItemClick({key: 'hedge-accounting', label: 'Hedge Accounting SFX'})">
+            
+            <div class="absolute inset-0 bg-gradient-to-r from-sidebar-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" *ngIf="activeMenu !== 'hedge-accounting'"></div>
+
+            <div class="icon-text flex items-center gap-4 relative z-10">
+              <i class="pi pi-chart-line text-[20px]" [class.text-sidebar-primary]="activeMenu === 'hedge-accounting'" [class.mr-0]="effectivelyCollapsed"></i>
+              <span *ngIf="!effectivelyCollapsed" class="text-sm font-semibold tracking-wide">Hedge Accounting SFX</span>
             </div>
-            <i *ngIf="!effectivelyCollapsed" class="pi text-xs" [class.pi-chevron-down]="groupExpanded" [class.pi-chevron-right]="!groupExpanded"></i>
+            <i *ngIf="!effectivelyCollapsed" class="pi text-xs ml-auto transition-transform duration-300 relative z-10" 
+               [class.pi-chevron-down]="groupExpanded" 
+               [class.pi-chevron-right]="!groupExpanded"
+               [class.text-sidebar-foreground]="activeMenu !== 'hedge-accounting'"
+               [class.text-sidebar-primary]="activeMenu === 'hedge-accounting'"></i>
           </button>
 
           <!-- Submenu Items (only visible when expanded) -->
-          <div *ngIf="!effectivelyCollapsed && groupExpanded" class="submenu">
+          <div *ngIf="!effectivelyCollapsed && groupExpanded" class="submenu pl-4 mt-2 space-y-1 relative">
+            <div class="absolute left-6 top-0 bottom-0 w-px bg-white/10"></div>
+            
             <a routerLink="/hedge/dashboard" 
-               routerLinkActive="active"
-               (click)="onMenuItemClick({key: 'dashboard', label: 'Analytics'})"
-               style="color: #e5e7eb !important;">
-              <i class="pi pi-th-large mr-3"></i>
+               routerLinkActive="text-sidebar-primary bg-white/5"
+               class="block py-2.5 px-4 ml-6 rounded-lg text-[13px] font-medium text-sidebar-foreground/70 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
+               (click)="onMenuItemClick({key: 'dashboard', label: 'Analytics'})">
+              <i class="pi pi-th-large text-[16px]"></i>
               Analytics
             </a>
             <a 
-              [class.active]="isRouteActive('/configuration')"
-              (click)="onMenuItemClick({key: 'configuration', label: 'Configuration'})"
-              style="color: #e5e7eb !important;">
-              <i class="pi pi-cog mr-3"></i>
+              [ngClass]="{
+                'text-sidebar-primary bg-white/5': isRouteActive('/configuration'),
+                'text-sidebar-foreground/70': !isRouteActive('/configuration')
+              }"
+              class="block py-2.5 px-4 ml-6 rounded-lg text-[13px] font-medium hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3 cursor-pointer"
+              (click)="onMenuItemClick({key: 'configuration', label: 'Configuration'})">
+              <i class="pi pi-cog text-[16px]"></i>
               Configuration
             </a>
             <a routerLink="/operations" 
-               routerLinkActive="active"
-               (click)="onMenuItemClick({key: 'operations', label: 'Operations'})"
-               style="color: #e5e7eb !important;">
-              <i class="pi pi-briefcase mr-3"></i>
+               routerLinkActive="text-sidebar-primary bg-white/5"
+               class="block py-2.5 px-4 ml-6 rounded-lg text-[13px] font-medium text-sidebar-foreground/70 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
+               (click)="onMenuItemClick({key: 'operations', label: 'Operations'})">
+              <i class="pi pi-briefcase text-[16px]"></i>
               Operations
             </a>
             <a routerLink="/hedge/reports" 
-               routerLinkActive="active"
-               (click)="onMenuItemClick({key: 'reports', label: 'Reports'})"
-               style="color: #e5e7eb !important;">
-              <i class="pi pi-file-pdf mr-3"></i>
+               routerLinkActive="text-sidebar-primary bg-white/5"
+               class="block py-2.5 px-4 ml-6 rounded-lg text-[13px] font-medium text-sidebar-foreground/70 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
+               (click)="onMenuItemClick({key: 'reports', label: 'Reports'})">
+              <i class="pi pi-file-pdf text-[16px]"></i>
               Reports
             </a>
             <a routerLink="/hawk-agent" 
-               routerLinkActive="active"
-               (click)="onMenuItemClick({key: 'hawk-agent', label: 'HAWK Agent'})"
-               style="color: #e5e7eb !important;">
-              <i class="pi pi-microchip-ai mr-3"></i>
+               routerLinkActive="text-sidebar-primary bg-white/5"
+               class="block py-2.5 px-4 ml-6 rounded-lg text-[13px] font-medium text-sidebar-foreground/70 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
+               (click)="onMenuItemClick({key: 'hawk-agent', label: 'HAWK Agent'})">
+              <i class="pi pi-microchip-ai text-[16px]"></i>
               HAWK Agent
             </a>
             <a routerLink="/audit" 
-               routerLinkActive="active"
-               (click)="onMenuItemClick({key: 'audit', label: 'Audit & System Logs'})"
-               style="color: #e5e7eb !important;">
-              <i class="pi pi-history mr-3"></i>
+               routerLinkActive="text-sidebar-primary bg-white/5"
+               class="block py-2.5 px-4 ml-6 rounded-lg text-[13px] font-medium text-sidebar-foreground/70 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
+               (click)="onMenuItemClick({key: 'audit', label: 'Audit & System Logs'})">
+              <i class="pi pi-history text-[16px]"></i>
               Audit & System Logs
             </a>
           </div>
@@ -101,27 +110,23 @@ import { LayoutService } from '../../services/layout.service';
       </nav>
 
       <!-- Footer -->
-      <div class="nav-footer">
+      <div class="nav-footer p-4 bg-black/20 backdrop-blur-sm border-t border-white/5">
         <!-- Collapse Toggle -->
         <button 
           (click)="toggleCollapse.emit()"
-          class="menu-button justify-center"
-          style="color: #e5e7eb !important;">
-          <i class="pi" [class.pi-angle-left]="!effectivelyCollapsed" [class.pi-angle-right]="effectivelyCollapsed"></i>
-        </button>
-
-        <!-- Notification Button -->
-        <button class="menu-button justify-center relative" style="color: #e5e7eb !important;">
-          <i class="pi pi-bell"></i>
-          <span class="absolute top-0 right-3 transform translate-x-1/3 -translate-y-1/3 w-2 h-2 bg-red-500 rounded-full"></span>
+          class="menu-button w-full flex items-center justify-center p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-sidebar-foreground hover:text-white transition-all duration-200 mb-3 group">
+          <i class="pi group-hover:scale-110 transition-transform" [class.pi-angle-left]="!effectivelyCollapsed" [class.pi-angle-right]="effectivelyCollapsed"></i>
         </button>
 
         <!-- User Profile -->
-        <div class="profile" style="color: #e5e7eb !important;">
-          <div class="profile-pic">
+        <div class="profile flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+          <div class="profile-pic w-9 h-9 rounded-full bg-gradient-to-br from-sidebar-primary to-blue-600 flex items-center justify-center text-sm font-bold text-white shadow-lg ring-2 ring-white/10 group-hover:ring-sidebar-primary/50 transition-all">
             <span>SL</span>
           </div>
-          <span *ngIf="!effectivelyCollapsed">Sensie Larusso</span>
+          <div *ngIf="!effectivelyCollapsed" class="flex flex-col overflow-hidden">
+            <span class="truncate font-semibold text-sm text-white group-hover:text-sidebar-primary transition-colors">Sensie Larusso</span>
+            <span class="text-xs text-sidebar-foreground/50">Admin User</span>
+          </div>
         </div>
       </div>
     </aside>
@@ -167,7 +172,7 @@ export class MainSidebarComponent implements OnInit, OnChanges {
     this.activeMenu = menuItem.key;
     this.layoutService.setNavigationInProgress(true);
     this.menuItemClick.emit(menuItem);
-    
+
     // Complete navigation after a short delay to allow route change
     setTimeout(() => {
       this.layoutService.completeNavigation();

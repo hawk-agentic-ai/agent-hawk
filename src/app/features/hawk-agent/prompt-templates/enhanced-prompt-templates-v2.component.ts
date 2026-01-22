@@ -53,6 +53,7 @@ import { AGENT_IFRAME_URL } from '../../../core/config/app-config';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ClientSideOptimizationService } from '../../../services/client-side-optimization.service';
+import { LayoutService } from '../../../core/services/layout.service';
 
 // Missing interfaces - simplified version
 interface BackendPerformanceMetrics {
@@ -175,70 +176,63 @@ interface BackendPerformanceMetrics {
       <div *ngIf="isAgentMode" class="fixed inset-0 flex bg-white" style="z-index: 1000;">
         
         <!-- Chat History Sidebar -->
-        <div class="w-65 bg-gray-50 flex flex-col border-r border-gray-200" style="width: 260px; background-color: #F9F9F9;">
-          <!-- DBS Logo Header -->
-          <div class="p-4 border-b border-gray-200">
-            <div class="flex items-center justify-start">
-              <img src="assets/Logo/DBS/Logomark.svg" alt="DBS" class="h-8 w-auto">
+        <div class="bg-card w-64 border-r border-border flex flex-col">
+          <!-- DBS Logo Header - Standardized Height -->
+          <div class="h-14 flex items-center px-4 border-b border-border">
+            <div class="flex items-center gap-2">
+               <img src="assets/Logo/DBS/Logomark.svg" class="w-6 h-6 object-contain" alt="DBS">
+               <span class="font-bold text-lg tracking-tight text-foreground">Hawk<span class="font-light">Agent</span></span>
             </div>
           </div>
           
           <!-- New Chat & Search -->
-          <div class="p-3" style="gap: 0px; display: flex; flex-direction: column;">
+          <div class="p-3 space-y-2">
             <button (click)="startNewConversation()" 
-                    class="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors text-left">
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              <span class="text-sm font-medium text-gray-900">New chat</span>
+                    class="w-full btn-primary">
+              <i class="pi pi-plus text-xs"></i>
+              <span>New chat</span>
             </button>
-            <button class="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors text-left">
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-              </svg>
-              <span class="text-sm font-medium text-gray-900">Search chats</span>
+            <button class="w-full btn-secondary">
+              <i class="pi pi-search text-xs"></i>
+              <span>Search chats</span>
             </button>
           </div>
           
           <!-- Previous Chats Section -->
           <div class="flex-1 overflow-hidden flex flex-col">
-            <div class="px-4 py-2 border-b border-gray-100">
-              <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider">Previous chats</h4>
+            <div class="px-4 py-2">
+              <h4 class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Previous chats</h4>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-3 space-y-1">
+            <div class="flex-1 overflow-y-auto p-2 space-y-1">
               <div *ngIf="chatHistory.length === 0" class="text-center text-gray-400 py-8">
-                <p class="text-sm">No previous chats</p>
+                <p class="text-xs">No previous chats</p>
               </div>
               
               <div *ngFor="let conversation of chatHistory; let i = index"
-                   class="relative p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
-                   [class.bg-gray-100]="selectedConversationId === conversation.conversation_id">
+                   class="relative p-2 rounded-md cursor-pointer transition-colors hover:bg-muted"
+                   [class.bg-muted]="selectedConversationId === conversation.conversation_id">
                 <div class="flex items-center justify-between"
                      (click)="selectConversation(conversation.conversation_id)">
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm text-gray-900 truncate">{{ conversation.title }}</p>
-                    <p class="text-xs text-gray-500 mt-1">{{ conversation.updated_at | date:'short' }}</p>
+                    <p class="text-xs font-medium text-foreground truncate">{{ conversation.title }}</p>
+                    <p class="text-[10px] text-muted-foreground mt-0.5">{{ conversation.updated_at | date:'short' }}</p>
                   </div>
-                  <button class="ml-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+                  <button class="ml-2 p-1 rounded-full hover:bg-background transition-colors opacity-0 group-hover:opacity-100"
                           (click)="toggleConversationMenu(conversation.conversation_id, $event)"
-                          [class.bg-gray-200]="activeConversationMenu === conversation.conversation_id">
-                    <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                    </svg>
+                          [class.opacity-100]="activeConversationMenu === conversation.conversation_id">
+                    <i class="pi pi-ellipsis-h text-xs text-muted-foreground"></i>
                   </button>
                 </div>
 
                 <!-- Mobile-style action overlay -->
                 <div *ngIf="activeConversationMenu === conversation.conversation_id"
-                     class="absolute top-0 right-0 w-16 h-full bg-red-500 rounded-lg flex items-center justify-center z-10 animate-slide-in-right"
+                     class="absolute top-0 right-0 w-16 h-full bg-red-500 rounded-md flex items-center justify-center z-10 animate-slide-in-right"
                      (click)="$event.stopPropagation()">
                   <button class="text-white hover:text-red-100 transition-colors"
                           (click)="confirmDeleteConversation(conversation.conversation_id, conversation.title); $event.stopPropagation()"
                           title="Delete conversation">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
+                    <i class="pi pi-trash"></i>
                   </button>
                 </div>
               </div>
@@ -248,58 +242,49 @@ interface BackendPerformanceMetrics {
         </div>
         
         <!-- Main Chat Area - No Header -->
-        <div class="flex-1 flex flex-col bg-white relative">
-          <!-- Conversation Header Bar -->
-          <div class="p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900" *ngIf="agentMessages.length > 0; else hawkAgent">
+        <div class="flex-1 flex flex-col bg-background relative">
+          <!-- Conversation Header Bar - Condensed & Aligned -->
+          <div class="h-14 px-6 border-b border-border flex items-center justify-between bg-white/50 backdrop-blur-sm">
+            <div>
+                <h3 class="text-base font-semibold text-gray-900" *ngIf="agentMessages.length > 0; else hawkAgent">
                   {{ getCurrentConversationTitle() }}
                 </h3>
                 <ng-template #hawkAgent>
                   <div class="relative inline-block">
-                    <h3 class="text-lg font-semibold text-gray-900 inline-flex items-center gap-1">
+                    <h3 class="text-base font-semibold text-gray-900 inline-flex items-center gap-2">
                       <span *ngIf="isAgentMode">{{ getCurrentHawkAgent().name }}</span>
                       <span *ngIf="!isAgentMode">{{ getApiKeyForTemplate(selectedFamily, selectedCategory).agentName }}</span>
                       <!-- Chevron to open agent menu -->
                       <button *ngIf="isAgentMode" (click)="toggleAgentMenu($event)"
-                              class="px-1 py-0.5 rounded hover:bg-gray-100 border border-transparent"
+                              class="px-1.5 py-1 rounded-md hover:bg-muted text-muted-foreground transition-colors"
                               title="Select Agent">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                        </svg>
+                        <i class="pi pi-chevron-down text-xs"></i>
                       </button>
                     </h3>
                     <!-- Agent dropdown menu aligned to the title -->
-                    <div *ngIf="showAgentMenu" class="absolute z-50 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg">
-                      <div class="py-1">
+                    <div *ngIf="showAgentMenu" class="absolute left-0 top-full mt-1 w-56 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+                      <div class="p-1">
                         <button *ngFor="let agent of getHawkAgentOptions()" (click)="selectHawkAgent(agent.key)"
-                                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                                [class.font-semibold]="selectedHawkAgent===agent.key">
-                          {{ agent.name }}
+                                class="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors flex items-center justify-between"
+                                [class.bg-accent]="selectedHawkAgent===agent.key">
+                          <span>{{ agent.name }}</span>
+                          <i *ngIf="selectedHawkAgent===agent.key" class="pi pi-check text-xs text-primary"></i>
                         </button>
                       </div>
                     </div>
                   </div>
                 </ng-template>
-                <p class="text-sm text-gray-500 mt-1" *ngIf="agentMessages.length > 0">
-                  {{ getCurrentHawkAgent().description }}
-                </p>
-              </div>
-              <!-- Toggle at far right (like temporary chat icon position) -->
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500">Template</span>
-                <label class="inline-flex items-center cursor-pointer">
+            </div>
+              <!-- Toggle at far right (Restored Functionality) -->
+              <div class="flex items-center gap-3 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
+                <span class="text-xs font-medium text-muted-foreground">Template</span>
+                <label class="inline-flex items-center cursor-pointer relative">
                   <input type="checkbox" class="sr-only" [ngModel]="isAgentMode" (ngModelChange)="onAgentModeToggle($event)">
-                  <div class="relative" role="switch" [attr.aria-checked]="isAgentMode">
-                    <div class="w-8 h-5 rounded-full transition-colors duration-200 shadow-inner ring-1" [ngClass]="isAgentMode ? 'bg-blue-600 ring-blue-600' : 'bg-gray-300 ring-gray-300'"></div>
-                    <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transform transition duration-200" [class.translate-x-3]="isAgentMode"></div>
-                  </div>
+                  <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
-                <span class="text-xs text-gray-500">Agent</span>
+                <span class="text-xs font-medium text-primary">Agent</span>
               </div>
             </div>
-          </div>
           
           <!-- Chat Messages Area -->
           <div class="flex-1 overflow-y-auto px-4 py-4" style="scroll-behavior: smooth;">
@@ -601,8 +586,8 @@ interface BackendPerformanceMetrics {
 })
 export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   // Existing properties (from original v2 component)
-  families: {label: string, value: string}[] = [];
-  categories: {label: string, value: string, count: number}[] = [];
+  families: { label: string, value: string }[] = [];
+  categories: { label: string, value: string, count: number }[] = [];
   selectedFamily = '';
   selectedCategory = '';
   search = '';
@@ -618,18 +603,18 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     url?: string;
     performance?: BackendPerformanceMetrics | null;
   } = {
-    type: 'unified',
-    healthy: true,
-    performance: null,
-    url: environment.unifiedBackendUrl
-  };
+      type: 'unified',
+      healthy: true,
+      performance: null,
+      url: environment.unifiedBackendUrl
+    };
   performanceMetrics: BackendPerformanceMetrics | null = null;
   showBackendToggle = false; // Set to true for testing/debugging
-  
+
   // Data freshness controls
   dataFreshnessMinutes = 15; // Default cache duration
   forceFreshData = false;    // Force fresh data flag
-  
+
   // Existing properties continued...
   templates: PromptTemplate[] = [];
   filtered: PromptTemplate[] = [];
@@ -642,10 +627,10 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   feedbackText = '';
   isAgentMode = false;
   agentUrlSafe?: SafeResourceUrl;
-  
+
   // Agent Mode Properties
   agentPrompt = '';
-  agentMessages: Array<{user: string, response: string}> = [];
+  agentMessages: Array<{ user: string, response: string }> = [];
   currentAgentResponse = '';
   // Agent selection for Agent Mode (definitions moved below with menu state)
 
@@ -682,7 +667,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   // Chat History Management
   chatHistory: AgentConversation[] = [];
   selectedConversationId = '';
-  
+
   // Suggested Prompts for Welcome Screen
   // Agent selector state
   showAgentMenu = false;
@@ -741,7 +726,8 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     private router: Router,
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef,
-    private clientOptimizer: ClientSideOptimizationService
+    private clientOptimizer: ClientSideOptimizationService,
+    private layoutService: LayoutService
   ) {
     // Initialize HAWK agent URL (dynamic based on selected agent)
     this.updateAgentUrl();
@@ -786,18 +772,18 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   get backendStatusText(): string {
     if (!this.backendStatus.healthy) return 'Backend Offline';
-    return this.backendStatus.type === 'unified' 
-      ? 'Unified Smart Backend v5.0' 
+    return this.backendStatus.type === 'unified'
+      ? 'Unified Smart Backend v5.0'
       : 'Legacy Dify Backend';
   }
 
   // Helper methods for template binding
   getSelectedFieldsArray(): string[] {
     if (!this.selectedTemplate) return [];
-    
+
     // Use the service's field extraction method - it's comprehensive and handles all cases
     const fields = this.svc.extractFieldNamesFromTemplate(this.selectedTemplate);
-    
+
     // Additional deduplication to ensure no repeats (case-insensitive)
     const seen = new Set<string>();
     const uniqueFields = fields.filter(field => {
@@ -808,11 +794,11 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       seen.add(normalized);
       return true;
     });
-    
+
     if (uniqueFields.length !== fields.length) {
       console.log(`Template "${this.selectedTemplate.name}": Removed ${fields.length - uniqueFields.length} duplicate fields`);
     }
-    
+
     return uniqueFields;
   }
 
@@ -838,7 +824,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   private sendToUnifiedBackend(query: string) {
     // Extract currency for backend data freshness logic
     const currency = this.extractCurrencyFromPrompt(query);
-    
+
     const payload = {
       user_prompt: query,
       template_category: this.selectedCategory || 'general',
@@ -891,15 +877,15 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     }).catch(err => {
       console.error('Unified Backend error:', err);
       // Retry on network/HTTP errors if not ended and retries remain
-      if (!this.endedEvent && this.retryCount < this.maxRetries){
+      if (!this.endedEvent && this.retryCount < this.maxRetries) {
         this.retryCount++;
-        setTimeout(()=> this.sendToUnifiedBackend(query), Math.min(1500 * this.retryCount, 5000));
+        setTimeout(() => this.sendToUnifiedBackend(query), Math.min(1500 * this.retryCount, 5000));
         return;
       }
       this.isLoading = false;
       this.isStreaming = false;
       this.responseText += `\n\n[Backend Error: ${err?.message || err}]`;
-      this.updateDatabaseSession('failed').catch(()=>{});
+      this.updateDatabaseSession('failed').catch(() => { });
     });
   }
 
@@ -918,25 +904,25 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
         }
         if (!value) continue;
         const chunk = decoder.decode(value, { stream: true });
-        
+
         buffer += chunk;
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
-        
+
         for (const line of lines) {
           if (line.trim() === '') continue;
-          
+
           if (line.startsWith('data: ')) {
             let dataContent = line.substring(6);
             // Handle nested data: data: {...} format
             if (dataContent.startsWith('data: ')) {
               dataContent = dataContent.substring(6);
             }
-            
+
             if (dataContent === 'event: ping') {
               continue;
             }
-            
+
             try {
               const json = JSON.parse(dataContent);
 
@@ -974,12 +960,12 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
               // Silently skip incomplete JSON chunks to prevent console spam
               // Only treat as plain text if it's definitely not JSON fragments
               if (dataContent.trim() &&
-                  !dataContent.includes('{') &&
-                  !dataContent.includes('}') &&
-                  !dataContent.includes('"event"') &&
-                  !dataContent.includes('"answer"') &&
-                  !dataContent.includes('data:') &&
-                  dataContent.length > 10) {
+                !dataContent.includes('{') &&
+                !dataContent.includes('}') &&
+                !dataContent.includes('"event"') &&
+                !dataContent.includes('"answer"') &&
+                !dataContent.includes('data:') &&
+                dataContent.length > 10) {
                 this.streamBuffer += dataContent;
                 this.responseText = this.streamBuffer;
               }
@@ -988,10 +974,10 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
           } else {
             // Non-data line, treat as plain text if substantial and not SSE metadata
             if (line.trim() &&
-                line.length > 5 &&
-                !line.includes('event:') &&
-                !line.includes('id:') &&
-                !line.includes('retry:')) {
+              line.length > 5 &&
+              !line.includes('event:') &&
+              !line.includes('id:') &&
+              !line.includes('retry:')) {
               this.streamBuffer += line + '\n';
               this.responseText = this.streamBuffer;
             }
@@ -1001,15 +987,15 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     } catch (e) {
       this.isStreaming = false;
       this.responseText += '\n\n[Stream interrupted due to error: ' + e + ']';
-      this.updateDatabaseSession('failed').catch(()=>{});
+      this.updateDatabaseSession('failed').catch(() => { });
     } finally {
       reader.releaseLock();
     }
   }
 
-  private finishUnifiedStream(tokenUsage?: any){
+  private finishUnifiedStream(tokenUsage?: any) {
     // Stream completed
-    
+
     let metadata = '\n\n---\n';
     metadata += `**Message UID:** ${this.currentMsgUid}\n`;
     metadata += `**Instruction ID:** ${this.currentInstructionId}\n`;
@@ -1022,36 +1008,36 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       metadata += `\n**Processing Cost:** $${(Number(tokenUsage.total_price) || 0).toFixed(4)} USD`;
     }
     this.responseText += metadata;
-    this.updateDatabaseSession('completed', tokenUsage).catch(()=>{});
-    
+    this.updateDatabaseSession('completed', tokenUsage).catch(() => { });
+
     // 3. CLEAR CACHE - Clean up processed context but keep raw Supabase data
     this.clientOptimizer.clearCache();
     // Request session completed
   }
 
   // Enhanced submit method with session management and currency-based caching
-  async submit(payload: { text: string; values: Record<string,string> }){
+  async submit(payload: { text: string; values: Record<string, string> }) {
     const base = payload?.text || '';
     const filled = this.svc.fillTemplate(base, payload?.values || {});
     if (!filled) return;
-    
+
     // 1. RESET RESULTS PAGE - Clear previous request data
     this.resetResultsPage();
-    
+
     // Extract currency from filled prompt for cache management  
     const currency = this.extractCurrencyFromPrompt(filled);
-    
+
     this.responseText = '';
     this.isStreaming = true;
     this.isLoading = true;
-    
+
     // Generate identifiers for this request
     this.currentMsgUid = this.generateMsgUID();
     this.currentInstructionId = this.generateInstructionId();
-    
+
     // Store selected fields for smart parameter extraction
     this.selectedFields = payload.values || {};
-    
+
     // Create DB session (pending) but do not block on failure
     await this.sessions.createSession(
       filled,
@@ -1060,11 +1046,11 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       this.selectedCategory || 'template',
       this.selectedIndex + 1
     );
-    
+
     // Optimistic usage increment
-    const id = this.selectedTemplate?.id; 
-    if (id) this.svc.incrementUsageCount(id).catch(()=>{});
-    
+    const id = this.selectedTemplate?.id;
+    if (id) this.svc.incrementUsageCount(id).catch(() => { });
+
     // Send to backend with streaming (same approach as v2 component)
     this.sendToUnifiedBackend(filled);
   }
@@ -1075,13 +1061,13 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   private resetResultsPage(): void {
     // Clear processed context cache
     this.clientOptimizer.clearCache();
-    
+
     // Clear response display
     this.responseText = '';
     this.streamBuffer = '';
     this.isStreaming = false;
     this.isLoading = false;
-    
+
     // Results page reset for new request
   }
 
@@ -1100,13 +1086,13 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   forceRefreshData(): void {
     this.clientOptimizer.clearCache();
     this.forceFreshData = true;
-    
+
     // Visual feedback
     const button = document.querySelector('button[title="Force refresh all cached data"]') as HTMLButtonElement;
     if (button) {
       button.innerHTML = '⏳ Refreshing...';
       button.disabled = true;
-      
+
       setTimeout(() => {
         button.innerHTML = '✅ Refreshed';
         setTimeout(() => {
@@ -1141,12 +1127,12 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       // Mock stats for now  
       const stats = { response_time_ms: 500, cache_hit_rate: '95%' };
       console.log('Performance Stats:', stats);
-      
+
       // For now, show in console/alert - could be enhanced with modal
-      const summary = this.backendStatus.type === 'unified' 
+      const summary = this.backendStatus.type === 'unified'
         ? `Unified Backend Stats:\n- Response Time: ${stats.response_time_ms}ms\n- Cache Hit Rate: ${stats.cache_hit_rate}\n- Backend: Unified Smart Backend v5.0`
         : `Legacy Backend: Performance tracking not available`;
-      
+
       alert(summary);
     } catch (error) {
       console.error('Failed to get performance stats:', error);
@@ -1156,7 +1142,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   async clearCurrencyCache(currency: string): Promise<void> {
     if (!currency) return;
-    
+
     try {
       // Direct API call to clear cache
       const response = await fetch(`${environment.unifiedBackendUrl}/cache/clear/${currency}`, { method: 'DELETE' });
@@ -1173,7 +1159,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   // All existing methods from original v2 component...
   // (Keeping all the sophisticated template management, filtering, URL persistence, etc.)
-  
+
   private async loadData() {
     this.loading = true;
     try {
@@ -1220,12 +1206,12 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   private buildCategoriesForFamily() {
     const categoryMap = new Map<string, number>();
-    
+
     // Filter templates by selected family and count categories
-    const filteredTemplates = this.templates.filter(t => 
+    const filteredTemplates = this.templates.filter(t =>
       !this.selectedFamily || t.family_type === this.selectedFamily
     );
-    
+
     filteredTemplates.forEach(t => {
       const cat = t.template_category || 'uncategorized';
       categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
@@ -1247,7 +1233,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     this.filtered = this.templates.filter(t => {
       const familyMatch = !this.selectedFamily || t.family_type === this.selectedFamily;
       const categoryMatch = !this.selectedCategory || t.template_category === this.selectedCategory;
-      const searchMatch = !this.search || 
+      const searchMatch = !this.search ||
         t.name?.toLowerCase().includes(this.search.toLowerCase()) ||
         t.description?.toLowerCase().includes(this.search.toLowerCase());
       return familyMatch && categoryMatch && searchMatch;
@@ -1257,9 +1243,9 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     if (this.selectedIndex < 0 || this.selectedIndex >= this.filtered.length) {
       this.selectedIndex = this.filtered.length > 0 ? 0 : -1;
     }
-    
+
     this.selectedTemplate = this.filtered[this.selectedIndex] || null;
-    
+
     // Auto-select template and detect fields
     if (this.selectedTemplate) {
       const fields = this.getSelectedFieldsArray();
@@ -1308,6 +1294,9 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   onAgentModeToggle(enabled: boolean) {
     this.isAgentMode = enabled;
+    // Sync with LayoutService to hide/show sidebars
+    this.layoutService.setAgentMode(enabled);
+
     // Clear any existing state when switching modes
     if (enabled) {
       this.agentMessages = [];
@@ -1318,14 +1307,14 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   // Agent Mode Methods
   async sendAgentMessage() {
     if (!this.agentPrompt?.trim() || this.isStreaming) return;
-    
+
     const userPrompt = this.agentPrompt.trim();
     this.agentPrompt = '';
-    
+
     // Add user message to history
     const messageIndex = this.agentMessages.length;
     this.agentMessages.push({ user: userPrompt, response: '' });
-    
+
     // Create new conversation if this is the first message (gracefully handle missing table)
     if (this.agentMessages.length === 1 && !this.selectedConversationId) {
       try {
@@ -1340,11 +1329,11 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       }
     }
 
-    
+
     // Start thinking timer
     this.startThinkingTimer();
     this.currentAgentResponse = '';
-    
+
     try {
       console.log('🚀 Sending agent message:', userPrompt.substring(0, 50) + '...');
       console.log('🌐 Backend URL:', `${environment.unifiedBackendUrl}/hawk-agent/process-prompt`);
@@ -1355,7 +1344,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
         agent_id: this.selectedHawkAgent,
         agent_api_key: this.getCurrentHawkAgent().apiKey
       });
-      
+
       // Use the same backend call as template mode but with conversational prompt
       const response = await fetch(`${environment.unifiedBackendUrl}/hawk-agent/process-prompt`, {
         method: 'POST',
@@ -1405,10 +1394,10 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
           const chunk = decoder.decode(value, { stream: true });
           console.log('📥 Received chunk:', chunk.substring(0, 100) + (chunk.length > 100 ? '...' : ''));
-          
+
           // Add chunk to buffer
           buffer += chunk;
-          
+
           // Process complete lines
           const lines = buffer.split('\n');
           // Keep the last incomplete line in buffer
@@ -1416,7 +1405,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
           for (const line of lines) {
             if (line.trim() === '') continue;
-            
+
             const answerChunk = this.processStreamLine(line, fullResponse);
             if (answerChunk) {
               fullResponse += answerChunk;
@@ -1430,7 +1419,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       // Update the message with the full response
       this.agentMessages[messageIndex].response = fullResponse;
       this.currentAgentResponse = '';
-      
+
       // Add assistant message to database (gracefully handle missing table)
       if (this.selectedConversationId && fullResponse) {
         try {
@@ -1444,12 +1433,12 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
           console.warn('⚠️ Failed to save assistant message (table may not exist), continuing in-memory:', error);
         }
       }
-      
-      
+
+
     } catch (error) {
       console.error('❌ Agent message failed:', error);
       this.agentMessages[messageIndex].response = 'Sorry, I encountered an error processing your request. Please try again.';
-      
+
     } finally {
       // Clean up all states
       this.stopThinkingTimer();
@@ -1461,11 +1450,11 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   // Process individual stream line
   private processStreamLine(line: string, currentResponse: string): string | null {
     console.log('📝 Processing line:', line.substring(0, 150) + (line.length > 150 ? '...' : ''));
-    
+
     try {
       // Handle different data formats from backend
       let jsonStr = '';
-      
+
       if (line.startsWith('data: data: ')) {
         // Backend sends: "data: data: {json}"
         jsonStr = line.substring(12); // Remove "data: data: "
@@ -1478,7 +1467,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
         console.log('⏭️ Skipping non-data line');
         return null; // Skip non-data lines
       }
-      
+
       if (jsonStr.trim() === '[DONE]') {
         console.log('🏁 Stream completion marker received');
         return null;
@@ -1497,24 +1486,24 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
         // Skip incomplete JSON chunks - they'll be completed in next iteration
         return null;
       }
-      
+
       // Handle error responses
       if (data.event === 'error') {
         console.error('❌ Backend error received:', data.message || data.error);
         throw new Error(`Backend error: ${data.message || data.error || 'Unknown error'}`);
       }
-      
+
       // Extract answer from response
       if (data.answer) {
         console.log('💬 Answer chunk received:', data.answer.substring(0, 50) + '...');
-        
+
         // First chunk received - stop thinking and start typing
         if (this.isThinking) {
           console.log('🛑 Stopping thinking timer, starting stream display');
           this.stopThinkingTimer();
           this.isStreaming = true;
         }
-        
+
         return data.answer;
       } else {
         console.log('❓ No answer field in data:', Object.keys(data));
@@ -1535,7 +1524,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     if (this.agentMessages.length > 0) {
       this.saveCurrentConversation();
     }
-    
+
     // Clear current conversation
     this.agentMessages = [];
     this.currentAgentResponse = '';
@@ -1544,7 +1533,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   async saveCurrentConversation() {
     if (this.agentMessages.length === 0) return;
-    
+
     try {
       // Check if this is a new conversation or existing one
       if (this.selectedConversationId) {
@@ -1562,9 +1551,9 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
         // Create new conversation
         const conversationId = this.conversations.generateConversationId();
         const title = this.conversations.generateConversationTitle(this.agentMessages[0].user);
-        
+
         await this.conversations.createConversation(conversationId, this.agentMessages[0].user, title);
-        
+
         // Add any additional messages (in case of multi-message conversation)
         for (let i = 0; i < this.agentMessages.length; i++) {
           const msg = this.agentMessages[i];
@@ -1583,13 +1572,13 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
             });
           }
         }
-        
+
         this.selectedConversationId = conversationId;
       }
-      
+
       // Reload chat history to reflect changes
       await this.loadChatHistory();
-      
+
     } catch (error) {
       console.error('❌ Failed to save conversation:', error);
     }
@@ -1614,19 +1603,19 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       console.warn('⚠️ Cannot switch conversations during streaming');
       return;
     }
-    
+
     // Don't reload if it's the same conversation
     if (this.selectedConversationId === conversationId) {
       return;
     }
-    
+
     const conversation = this.chatHistory.find(c => c.conversation_id === conversationId);
     if (conversation) {
       // Save current conversation before switching
       if (this.agentMessages.length > 0 && this.selectedConversationId !== conversationId) {
         await this.saveCurrentConversation();
       }
-      
+
       // Convert database format to component format
       this.selectedConversationId = conversationId;
       this.agentMessages = this.convertDatabaseMessagesToComponent(conversation.messages);
@@ -1636,36 +1625,36 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   }
 
   // Helper method to convert database messages to component format
-  private convertDatabaseMessagesToComponent(dbMessages: any[]): Array<{user: string, response: string}> {
-    const componentMessages: Array<{user: string, response: string}> = [];
-    
+  private convertDatabaseMessagesToComponent(dbMessages: any[]): Array<{ user: string, response: string }> {
+    const componentMessages: Array<{ user: string, response: string }> = [];
+
     for (let i = 0; i < dbMessages.length; i++) {
       const msg = dbMessages[i];
-      
+
       if (msg.role === 'user') {
         // Find the next assistant message if it exists
         const nextMsg = dbMessages[i + 1];
         const response = (nextMsg && nextMsg.role === 'assistant') ? nextMsg.content : '';
-        
+
         componentMessages.push({
           user: msg.content,
           response: response
         });
-        
+
         // Skip the assistant message since we already processed it
         if (nextMsg && nextMsg.role === 'assistant') {
           i++;
         }
       }
     }
-    
+
     return componentMessages;
   }
 
   clearCurrentConversation() {
     this.agentMessages = [];
     this.currentAgentResponse = '';
-    
+
     // Remove from history if it exists
     if (this.selectedConversationId) {
       this.chatHistory = this.chatHistory.filter(c => c.conversation_id !== this.selectedConversationId);
@@ -1723,14 +1712,14 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   private generateConversationTitle(): string {
     if (this.agentMessages.length === 0) return 'New Conversation';
-    
+
     const firstMessage = this.agentMessages[0].user;
     // Take first 60 characters and add ellipsis if longer
     let title = firstMessage.length > 60 ? firstMessage.substring(0, 57) + '...' : firstMessage;
-    
+
     // Remove line breaks and normalize whitespace
     title = title.replace(/\s+/g, ' ').trim();
-    
+
     return title || 'Untitled Conversation';
   }
 
@@ -1739,7 +1728,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     this.isThinking = true;
     this.thinkingStartTime = Date.now();
     this.thinkingElapsed = 0;
-    
+
     this.thinkingTimer = setInterval(() => {
       this.thinkingElapsed = Date.now() - this.thinkingStartTime;
       this.cdr.detectChanges();
@@ -1763,25 +1752,25 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
   // Format response for ChatGPT-like display with proper table handling
   formatResponse(response: string): string {
     if (!response) return '';
-    
+
     let formatted = response;
-    
+
     // Handle markdown tables properly
     formatted = this.parseMarkdownTables(formatted);
-    
+
     // Convert markdown headers to HTML with proper styling
     formatted = formatted.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-gray-900 mt-6 mb-3">$1</h3>');
     formatted = formatted.replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-4">$1</h2>');
     formatted = formatted.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-gray-900 mt-6 mb-4">$1</h1>');
-    
+
     // Convert markdown bold and italic
     formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>');
     formatted = formatted.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>');
-    
+
     // Convert markdown lists
     formatted = formatted.replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>');
     formatted = formatted.replace(/(<li.*<\/li>)/gs, '<ul class="list-disc pl-6 my-3">$1</ul>');
-    
+
     // Convert numbered lists
     formatted = formatted.replace(/^\d+\. (.+)$/gm, '<li class="ml-4">$1</li>');
     formatted = formatted.replace(/(<li.*<\/li>)/gs, (match) => {
@@ -1790,16 +1779,16 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
       }
       return match;
     });
-    
+
     // Convert line breaks to proper spacing
     formatted = formatted.replace(/\n\n/g, '</p><p class="mb-4">');
     formatted = formatted.replace(/\n/g, '<br>');
-    
+
     // Wrap in paragraph tags
     if (!formatted.startsWith('<')) {
       formatted = `<p class="mb-4">${formatted}</p>`;
     }
-    
+
     return formatted;
   }
 
@@ -1808,22 +1797,22 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     const lines = text.split('\n');
     let result: string[] = [];
     let i = 0;
-    
+
     while (i < lines.length) {
       const line = lines[i];
-      
+
       // Check if this line starts a markdown table (contains |)
       if (line.trim().includes('|') && line.trim().startsWith('|') && line.trim().endsWith('|')) {
         // Found potential table start
         let tableLines: string[] = [];
         let tableStart = i;
-        
+
         // Collect all consecutive table lines
         while (i < lines.length && lines[i].trim().includes('|') && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
           tableLines.push(lines[i]);
           i++;
         }
-        
+
         if (tableLines.length > 0) {
           // Parse the table
           const tableHtml = this.convertTableToHtml(tableLines);
@@ -1833,37 +1822,37 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
           i = tableStart; // Reset if no table found
         }
       }
-      
+
       // Not a table line, add as-is
       result.push(line);
       i++;
     }
-    
+
     return result.join('\n');
   }
 
   private convertTableToHtml(tableLines: string[]): string {
     if (tableLines.length === 0) return '';
-    
+
     let tableHtml = '<table class="min-w-full border-collapse border border-gray-300 my-4 bg-white shadow-sm rounded-lg overflow-hidden">';
-    
+
     // Process each line
     for (let i = 0; i < tableLines.length; i++) {
       const line = tableLines[i].trim();
-      
+
       // Skip separator lines (lines with only |, -, :, and spaces)
       if (/^[\|\-\:\s]+$/.test(line)) {
         continue;
       }
-      
+
       // Parse cells
       const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
-      
+
       if (cells.length > 0) {
         const isHeader = i === 0; // First non-separator line is header
         const tag = isHeader ? 'th' : 'td';
         const headerClass = isHeader ? 'bg-gray-50 font-semibold text-gray-900' : 'bg-white text-gray-800';
-        
+
         tableHtml += '<tr>';
         cells.forEach(cell => {
           tableHtml += `<${tag} class="px-4 py-3 border border-gray-300 text-sm ${headerClass}">${cell || '&nbsp;'}</${tag}>`;
@@ -1871,16 +1860,16 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
         tableHtml += '</tr>';
       }
     }
-    
+
     tableHtml += '</table>';
     return tableHtml;
   }
 
   // Results actions (existing stubs)
-  exportReport(){ console.log('Export report clicked'); }
-  createTicket(){ console.log('Create ticket clicked'); }
-  scheduleReview(){ console.log('Schedule review clicked'); }
-  shareResults(){ console.log('Share results clicked'); }
+  exportReport() { console.log('Export report clicked'); }
+  createTicket() { console.log('Create ticket clicked'); }
+  scheduleReview() { console.log('Schedule review clicked'); }
+  shareResults() { console.log('Share results clicked'); }
 
   setRating(rating: number) { this.currentRating = rating; }
   setCompletionStatus(status: string) { this.completionStatus = status; }
@@ -1941,22 +1930,22 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
 
   // Keyboard navigation (existing logic) - ONLY active in template mode
   @HostListener('keydown', ['$event'])
-  onKeydown(e: KeyboardEvent){
+  onKeydown(e: KeyboardEvent) {
     // CRITICAL FIX: Don't trigger template mode actions when in agent mode
     if (this.isAgentMode) return;
-    
+
     if (!this.filtered?.length) return;
-    if (e.key === 'ArrowDown'){ 
-      this.selectedIndex = Math.min(this.filtered.length - 1, Math.max(0, this.selectedIndex) + 1); 
-      e.preventDefault(); 
-      this.persistAndSyncUrl(); 
+    if (e.key === 'ArrowDown') {
+      this.selectedIndex = Math.min(this.filtered.length - 1, Math.max(0, this.selectedIndex) + 1);
+      e.preventDefault();
+      this.persistAndSyncUrl();
     }
-    if (e.key === 'ArrowUp'){ 
-      this.selectedIndex = Math.max(0, (this.selectedIndex<0?0:this.selectedIndex) - 1); 
-      e.preventDefault(); 
-      this.persistAndSyncUrl(); 
+    if (e.key === 'ArrowUp') {
+      this.selectedIndex = Math.max(0, (this.selectedIndex < 0 ? 0 : this.selectedIndex) - 1);
+      e.preventDefault();
+      this.persistAndSyncUrl();
     }
-    if (e.key === 'Enter'){
+    if (e.key === 'Enter') {
       this.submit({ text: this.selectedTemplate?.prompt_text || '', values: {} });
       e.preventDefault();
     }
@@ -2027,12 +2016,12 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
         };
       }
 
-      // Utilisation/Utilization category → Booking Agent (app-cxzVbRQUUDofTjx1nDfajpRX)
+      // Utilisation/Utilization category → Allocation Agent (app-cxzVbRQUUDofTjx1nDfajpRX)
       if (cat.includes('utilization') || cat.includes('utilisation')) {
         return {
-          agentKey: 'booking',
-          apiKey: this.hawkAgents.booking.apiKey,
-          agentName: this.hawkAgents.booking.name
+          agentKey: 'allocation',
+          apiKey: this.hawkAgents.allocation.apiKey,
+          agentName: this.hawkAgents.allocation.name
         };
       }
 
@@ -2143,7 +2132,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     this.sendAgentMessage();
   }
 
-  exportToPDF(message: {user: string, response: string}, index: number) {
+  exportToPDF(message: { user: string, response: string }, index: number) {
     // Create conversation context up to this point
     const conversationContext = this.agentMessages.slice(0, index + 1);
     const conversationTitle = this.getCurrentConversationTitle();
@@ -2179,7 +2168,7 @@ export class EnhancedPromptTemplatesV2Component implements OnInit, OnDestroy {
     console.log('✅ Response exported to JSON');
   }
 
-  private generatePDFContent(conversation: Array<{user: string, response: string}>, title: string): string {
+  private generatePDFContent(conversation: Array<{ user: string, response: string }>, title: string): string {
     let content = `HAWK Agent Conversation Export\n`;
     content += `Title: ${title}\n`;
     content += `Agent: ${this.getCurrentHawkAgent().name}\n`;

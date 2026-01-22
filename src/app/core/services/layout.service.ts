@@ -11,6 +11,8 @@ export class LayoutService {
   private mainSidebarHovered = signal(false);
   private subSidebarHovered = signal(false);
   private navigationInProgress = signal(false);
+  // Track Agent Mode to hide sidebars
+  private agentMode = signal(false);
 
   isMainSidebarCollapsed() {
     return this.mainSidebarCollapsed();
@@ -41,11 +43,11 @@ export class LayoutService {
   }
 
   getMainSidebarWidth(): string {
-    return this.isMainSidebarCollapsed() ? '64px' : '280px';
+    return this.isMainSidebarCollapsed() ? '80px' : '280px';
   }
 
   getSubSidebarWidth(): string {
-    return this.isSubSidebarCollapsed() ? '64px' : '240px';
+    return this.isSubSidebarCollapsed() ? '80px' : '240px';
   }
 
   // Hover state management
@@ -93,5 +95,14 @@ export class LayoutService {
         this.subSidebarCollapsed.set(true);
       }
     }, 500); // 500ms delay to allow user to continue hovering if needed
+  }
+
+  // Agent Mode Management
+  setAgentMode(enabled: boolean) {
+    this.agentMode.set(enabled);
+  }
+
+  isAgentMode() {
+    return this.agentMode();
   }
 }

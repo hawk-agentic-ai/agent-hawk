@@ -4,7 +4,7 @@ echo "================================================="
 
 # Configuration
 SERVER_IP="3.238.163.106"
-SSH_KEY="../agent_tmp.pem"
+SSH_KEY="./agent_tmp.pem"
 FRONTEND_PATH="/var/www/3-238-163-106.nip.io"
 BACKEND_PATH="/home/ubuntu/hedge-agent/hedge-agent"
 

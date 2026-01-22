@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <title>MBS Hedge Accounting SFX</title>
@@ -8,7 +9,11 @@
   <!-- Prefer SVG favicon (DBS logomark); keep ICO as fallback for older browsers -->
   <link rel="icon" type="image/svg+xml" href="assets/dbs-favicon.svg">
   <link rel="alternate icon" type="image/x-icon" href="favicon.ico">
-  <!-- Removed external Google Fonts for offline build -->
+  <!-- Added Public Sans font (User Request) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
   <script>
     // Runtime env for Supabase (prototype)
     window.__env = {
@@ -17,7 +22,9 @@
     };
   </script>
 </head>
+
 <body class="font-sans bg-gray-50">
   <app-root></app-root>
 </body>
+
 </html>

@@ -88,11 +88,23 @@ import { FormsModule } from '@angular/forms';
         <!-- Metadata now included in main response above, no separate section needed -->
       </div>
 
-      <div class="px-2 py-2 border-t border-gray-100 flex flex-wrap gap-2">
-        <button class="btn btn-secondary" (click)="export.emit()"><i class="pi pi-download"></i><span>Export Report</span></button>
-        <button class="btn btn-secondary" (click)="ticket.emit()"><i class="pi pi-ticket"></i><span>Create Ticket</span></button>
-        <button class="btn btn-secondary" (click)="schedule.emit()"><i class="pi pi-calendar"></i><span>Schedule Review</span></button>
-        <button class="btn btn-secondary" (click)="share.emit()"><i class="pi pi-share-alt"></i><span>Share</span></button>
+      <div class="px-2 py-3 border-t border-border flex flex-wrap gap-3">
+        <button class="btn-secondary" (click)="export.emit()">
+          <i class="pi pi-download text-xs"></i>
+          <span>Export Report</span>
+        </button>
+        <button class="btn-secondary" (click)="ticket.emit()">
+          <i class="pi pi-ticket text-xs"></i>
+          <span>Create Ticket</span>
+        </button>
+        <button class="btn-secondary" (click)="schedule.emit()">
+          <i class="pi pi-calendar text-xs"></i>
+          <span>Schedule Review</span>
+        </button>
+        <button class="btn-secondary" (click)="share.emit()">
+          <i class="pi pi-share-alt text-xs"></i>
+          <span>Share</span>
+        </button>
       </div>
 
       <!-- Rating & Completion, similar to legacy UI -->
@@ -154,17 +166,17 @@ export class TemplateResultsComponent {
   @Input() responseText = '';
   @Input() streaming = false;
   @Input() rating = 0;
-  @Input() completion: 'complete'|'incomplete'|null = null;
+  @Input() completion: 'complete' | 'incomplete' | null = null;
   @Input() feedback = '';
   @Output() export = new EventEmitter<void>();
   @Output() ticket = new EventEmitter<void>();
   @Output() schedule = new EventEmitter<void>();
   @Output() share = new EventEmitter<void>();
   @Output() rate = new EventEmitter<number>();
-  @Output() setCompletion = new EventEmitter<'complete'|'incomplete'>();
+  @Output() setCompletion = new EventEmitter<'complete' | 'incomplete'>();
   @Output() feedbackChange = new EventEmitter<string>();
 
-  constructor(private sanitizer: DomSanitizer) {}
+  constructor(private sanitizer: DomSanitizer) { }
 
   private getCleanResponse(): string {
     if (!this.responseText) return '';
@@ -174,10 +186,10 @@ export class TemplateResultsComponent {
 
   getFormattedResponse(): SafeHtml {
     if (!this.responseText) return this.sanitizer.bypassSecurityTrustHtml('');
-    
+
     // Use the entire response instead of splitting it
     let fullResponse = this.responseText;
-    
+
     // First, clean up any remaining JSON artifacts that might have leaked through
     fullResponse = fullResponse
       .replace(/data:\s*\{[^}]*"event"[^}]*\}/g, '') // Remove any JSON objects
@@ -186,20 +198,20 @@ export class TemplateResultsComponent {
       .replace(/\\n/g, '\n') // Convert literal \n to actual newlines
       .replace(/\\/g, '') // Remove remaining escape characters
       .trim();
-    
+
     // ENHANCED: Process tables first, then apply other formatting
     let formattedText = this.convertTablesToHtml(fullResponse);
-    
+
     // Apply other formatting (but avoid double-processing table content)
     // Split by table blocks to avoid applying formatting inside tables
     const parts = formattedText.split(/(<table[^>]*>.*?<\/table>)/gs);
-    
+
     formattedText = parts.map((part, index) => {
       // Don't format content inside table tags (odd indices after split)
       if (index % 2 === 1 && part.includes('<table')) {
         return part; // Return table HTML as-is
       }
-      
+
       // Apply formatting to non-table content
       return part
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
@@ -209,7 +221,7 @@ export class TemplateResultsComponent {
         .replace(/---\n/g, '<hr class="my-4 border-gray-300">') // Convert separator to visual line
         .replace(/\n/g, '<br>'); // Convert newlines to breaks
     }).join('');
-    
+
     return this.sanitizer.bypassSecurityTrustHtml(formattedText);
   }
 
@@ -223,13 +235,13 @@ export class TemplateResultsComponent {
   private convertTablesToHtml(text: string): string {
     // First, clean up streaming artifacts and JSON data
     let cleanText = this.cleanStreamingData(text);
-    
+
     // Use multiple parsing strategies for different table formats
     let result = this.parseJsonEmbeddedTables(cleanText);
     result = this.parseMarkdownTables(result);
     result = this.parseStructuredData(result);
     result = this.parseSpaceSeparatedTables(result);
-    
+
     return result;
   }
 
@@ -238,7 +250,7 @@ export class TemplateResultsComponent {
     return text.replace(/\{[^}]*\"[^"]*\":\s*\[[^\]]*\][^}]*\}/g, (match) => {
       try {
         const jsonData = JSON.parse(match);
-        
+
         // Check if this looks like tabular data
         const arrays = Object.values(jsonData).filter(value => Array.isArray(value));
         if (arrays.length > 0) {
@@ -247,7 +259,7 @@ export class TemplateResultsComponent {
             return this.buildJsonTable(tableData);
           }
         }
-        
+
         // Check for key-value pairs that could be a table
         const entries = Object.entries(jsonData);
         if (entries.length >= 2) {
@@ -262,19 +274,19 @@ export class TemplateResultsComponent {
 
   private buildJsonTable(data: any[]): string {
     if (data.length === 0) return '';
-    
+
     const firstItem = data[0];
     const headers = Object.keys(firstItem);
-    
+
     let html = '<table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden my-4">';
-    
+
     // Headers
     html += '<thead class="bg-gray-50"><tr>';
     headers.forEach(header => {
       html += `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">${this.escapeHtml(header)}</th>`;
     });
     html += '</tr></thead>';
-    
+
     // Data rows
     html += '<tbody class="bg-white divide-y divide-gray-200">';
     data.forEach(item => {
@@ -286,7 +298,7 @@ export class TemplateResultsComponent {
       html += '</tr>';
     });
     html += '</tbody></table>';
-    
+
     return html;
   }
 
@@ -313,25 +325,25 @@ export class TemplateResultsComponent {
     const lines = text.split('\n');
     let result = '';
     let currentTable: string[] = [];
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      
+
       // Check if this is a markdown table row
       if (line.startsWith('|') && line.endsWith('|') && line.split('|').length >= 3) {
         currentTable.push(line);
-        
+
         // Check next line to see if table continues
         const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
         const isNextTableRow = nextLine.startsWith('|') && nextLine.endsWith('|');
         const isNextSeparator = /^\|[\s\-:]+\|$/.test(nextLine);
-        
+
         // If next line is separator, skip it
         if (isNextSeparator) {
           i++;
           continue;
         }
-        
+
         // If table ends, process it
         if (!isNextTableRow || i === lines.length - 1) {
           if (currentTable.length > 0) {
@@ -348,7 +360,7 @@ export class TemplateResultsComponent {
         result += line + '\n';
       }
     }
-    
+
     return result;
   }
 
@@ -367,13 +379,13 @@ export class TemplateResultsComponent {
     const lines = text.split('\n');
     let result = '';
     let potentialTable: string[] = [];
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      
+
       if (this.looksLikeTableData(line)) {
         potentialTable.push(line);
-        
+
         // Look ahead to see if we have more table-like data
         const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
         if (!this.looksLikeTableData(nextLine) || i === lines.length - 1) {
@@ -397,46 +409,46 @@ export class TemplateResultsComponent {
         result += line + '\n';
       }
     }
-    
+
     return result;
   }
 
   private looksLikeTableData(line: string): boolean {
     if (!line || line.length < 10) return false;
-    
+
     // Check for multiple space-separated values
     const parts = line.split(/\s{2,}/).filter(p => p.trim().length > 0);
     if (parts.length < 2) return false;
-    
+
     // Look for patterns that suggest tabular data
     const hasNumbers = parts.some(part => /\d/.test(part));
     const hasConsistentFormat = parts.length >= 3;
     const hasKeywords = /entity|currency|amount|rate|position|nav|allocation/i.test(line);
-    
+
     return (hasNumbers && hasConsistentFormat) || hasKeywords;
   }
 
   private buildMarkdownTableHtml(tableRows: string[]): string {
     if (tableRows.length === 0) return '';
-    
+
     let html = '<table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden my-4">';
-    
+
     // First row as header
     const headerRow = tableRows[0];
     const headerCells = headerRow.split('|').slice(1, -1).map(cell => cell.trim());
-    
+
     html += '<thead class="bg-gray-50"><tr>';
     headerCells.forEach(cell => {
       html += `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">${this.escapeHtml(cell)}</th>`;
     });
     html += '</tr></thead>';
-    
+
     // Data rows
     html += '<tbody class="bg-white divide-y divide-gray-200">';
     for (let i = 1; i < tableRows.length; i++) {
       const row = tableRows[i];
       const cells = row.split('|').slice(1, -1).map(cell => cell.trim());
-      
+
       html += '<tr class="hover:bg-gray-50">';
       cells.forEach(cell => {
         html += `<td class="px-4 py-3 text-sm text-gray-900 border-b border-gray-100">${this.escapeHtml(cell)}</td>`;
@@ -444,14 +456,14 @@ export class TemplateResultsComponent {
       html += '</tr>';
     }
     html += '</tbody></table>';
-    
+
     return html;
   }
 
   private buildKeyValueTable(pairs: string[]): string {
     let html = '<table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden my-4">';
     html += '<tbody class="bg-white divide-y divide-gray-200">';
-    
+
     pairs.forEach(pair => {
       const [key, value] = pair.split(':').map(s => s.trim());
       html += '<tr class="hover:bg-gray-50">';
@@ -459,23 +471,23 @@ export class TemplateResultsComponent {
       html += `<td class="px-4 py-3 text-sm text-gray-900 border-b border-gray-100">${this.escapeHtml(value)}</td>`;
       html += '</tr>';
     });
-    
+
     html += '</tbody></table>';
     return html;
   }
 
   private buildSpaceSeparatedTable(rows: string[]): string {
     if (rows.length < 2) return rows.join('\n');
-    
+
     // Analyze column structure
     const columnData = this.analyzeColumns(rows);
     if (columnData.length < 2) return rows.join('\n');
-    
+
     let html = '<table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden my-4">';
-    
+
     // Use first row as header if it looks like one
     const firstRowIsHeader = this.isLikelyHeader(rows[0]);
-    
+
     if (firstRowIsHeader) {
       const headerParts = this.splitIntoColumns(rows[0], columnData);
       html += '<thead class="bg-gray-50"><tr>';
@@ -484,10 +496,10 @@ export class TemplateResultsComponent {
       });
       html += '</tr></thead>';
     }
-    
+
     html += '<tbody class="bg-white divide-y divide-gray-200">';
     const dataRows = firstRowIsHeader ? rows.slice(1) : rows;
-    
+
     dataRows.forEach(row => {
       const cells = this.splitIntoColumns(row, columnData);
       html += '<tr class="hover:bg-gray-50">';
@@ -496,7 +508,7 @@ export class TemplateResultsComponent {
       });
       html += '</tr>';
     });
-    
+
     html += '</tbody></table>';
     return html;
   }
@@ -504,7 +516,7 @@ export class TemplateResultsComponent {
   private analyzeColumns(rows: string[]): number[] {
     // Find consistent column boundaries across all rows
     const positions = new Set<number>();
-    
+
     rows.forEach(row => {
       let pos = 0;
       while (pos < row.length) {
@@ -517,26 +529,26 @@ export class TemplateResultsComponent {
         }
       }
     });
-    
+
     return Array.from(positions).sort((a, b) => a - b);
   }
 
   private splitIntoColumns(row: string, positions: number[]): string[] {
     const columns = [];
     let start = 0;
-    
+
     for (const pos of positions) {
       if (pos > start) {
         columns.push(row.slice(start, pos).trim());
         start = pos;
       }
     }
-    
+
     // Add the last column
     if (start < row.length) {
       columns.push(row.slice(start).trim());
     }
-    
+
     return columns.filter(col => col.length > 0);
   }
 
@@ -573,7 +585,7 @@ export class TemplateResultsComponent {
     navigator.clipboard.writeText(cleanText).then(() => {
       // Show success feedback (optional - could add a toast notification)
       console.log('Results copied to clipboard');
-      
+
       // Visual feedback - temporarily change button text
       const button = document.querySelector('[title="Copy results to clipboard"]') as HTMLButtonElement;
       if (button) {
@@ -581,7 +593,7 @@ export class TemplateResultsComponent {
         button.innerHTML = '<i class="pi pi-check text-xs"></i><span>Copied!</span>';
         button.classList.add('bg-green-100', 'text-green-700', 'border-green-300');
         button.classList.remove('bg-gray-100', 'text-gray-700', 'border-gray-300');
-        
+
         setTimeout(() => {
           button.innerHTML = originalContent;
           button.classList.remove('bg-green-100', 'text-green-700', 'border-green-300');
@@ -590,7 +602,7 @@ export class TemplateResultsComponent {
       }
     }).catch(err => {
       console.error('Failed to copy to clipboard:', err);
-      
+
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = cleanText;
@@ -600,14 +612,14 @@ export class TemplateResultsComponent {
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      
+
       try {
         document.execCommand('copy');
         console.log('Results copied to clipboard (fallback method)');
       } catch (err) {
         console.error('Fallback copy failed:', err);
       }
-      
+
       document.body.removeChild(textArea);
     });
   }

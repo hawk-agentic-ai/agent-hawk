@@ -1,8 +1,11 @@
 {
-  "/api/*": {
+  "/api": {
     "target": "http://localhost:8004",
     "secure": false,
     "changeOrigin": true,
+    "pathRewrite": {
+      "^/api": ""
+    },
     "logLevel": "debug"
   },
   "/mcp/*": {

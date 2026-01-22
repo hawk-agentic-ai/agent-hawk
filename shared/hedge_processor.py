@@ -209,7 +209,8 @@ class HedgeFundProcessor:
                     write_data=write_data, instruction_id=instruction_id,
                     execute_booking=execute_booking, execute_posting=execute_posting,
                     ai_decisions=ai_decisions,  # Pass AI decisions to write operations
-                    detected_stage=detected_stage  # Pass detected stage to write operations
+                    detected_stage=detected_stage,  # Pass detected stage to write operations
+                    agent_role=agent_role  # Pass agent role for RBAC
                 )
             
             # Step 4: Build optimized context
@@ -810,11 +811,38 @@ Available Data Tables: {list(extracted_data.keys()) if extracted_data else 'None
                                      execute_booking: bool = False,
                                      execute_posting: bool = False,
                                      ai_decisions: Optional[Dict[str, Any]] = None,
-                                     detected_stage: str = "auto") -> Dict[str, Any]:
+                                     detected_stage: str = "auto",
+                                     agent_role: str = "unified") -> Dict[str, Any]:
         """
         Execute database write operations based on operation type
         """
         try:
+            # --- RBAC GUARDRAILS ---
+            # Defense-in-depth: Even if frontend routing fails, backend must deny invalid access
+            
+            # 1. Booking Agent should NOT perform Utilization/Feasibility (Stage 1A)
+            if agent_role == "booking" and detected_stage == "1A":
+                logger.warning(f"RBAC DENIED: Booking Agent attempted Stage 1A operation. Prompt: {user_prompt[:50]}")
+                return {
+                    "status": "error",
+                    "error": "Access Denied: Booking Agent cannot perform Utilization/Feasibility checks. Please ask the Allocation Agent.",
+                    "code": "RBAC_VIOLATION_BOOKING_1A"
+                }
+
+            # 2. Allocation Agent should NOT perform Booking/GL (Stage 2/3)
+            # Note: Allocation agent often needs to "check" booking status, so we only block explicit write intents if strictly needed.
+            # For now, we'll block explicit booking/posting operations.
+            if agent_role == "allocation" and (operation_type in ["mx_booking", "gl_posting"] or detected_stage in ["2", "3"]):
+                # Allow strictly read-only access? The universal processor usually handles reads before this point.
+                # execute_write_operations is only called for NON-READ operations.
+                logger.warning(f"RBAC DENIED: Allocation Agent attempted Stage 2/3 write operation. Prompt: {user_prompt[:50]}")
+                return {
+                    "status": "error",
+                    "error": "Access Denied: Allocation Agent cannot perform Booking or GL Posting. Please ask the Booking Agent.",
+                    "code": "RBAC_VIOLATION_ALLOCATION_23"
+                }
+            # -----------------------
+
             results = {
                 "operation_type": operation_type,
                 "status": "success",
